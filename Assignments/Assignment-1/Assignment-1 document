@@ -1,21 +1,21 @@
 Write a MATLAB program to complete the following tasks:
 • Read an image into the workspace (e.g., using MATLAB function imread) and display
-the image (e.g., using MATLAB function imshow). The image file name should be
-image.png and there is no need to submit the image. 
+  the image (e.g., using MATLAB function imshow). The image file name should be
+  image.png and there is no need to submit the image. 
 • Display each channel of this image in a separate figure (window). 
 • Convert the color image into HSV color space (e.g., using rgb2hsv) and display each
-channel in a separate figure. Note the channels are the HSV channels.
+  channel in a separate figure. Note the channels are the HSV channels.
 • Enlarge the image two times (e.g., using the function imresize) and crop the enlarged
-image to its original size (e.g., using the function imcrop) 
+  image to its original size (e.g., using the function imcrop) 
 • Convert the color image into grayscale (e.g., using function rgb2gray) 
 • Generate the histogram of the grayscale image and display it on screen 
 • Write a function to achieve histogram matching (hint: use MATLAB built-in function
-histeq as the starting point)
-− The function takes two input images (either color or grayscale images) and uses the
-histogram of one image as the reference to modify the histogram of the other image
-so that the histograms of both after histogram matching are similar (statistically).
-− Hint: check the dimensionality of the input image and include a call to the color
-conversion function if the image has three channels at the start of the histogram
-matching function so that the function deals with color and grayscale images.
+  histeq as the starting point)
+  − The function takes two input images (either color or grayscale images) and uses the
+    histogram of one image as the reference to modify the histogram of the other image
+    so that the histograms of both after histogram matching are similar (statistically).
+  − Hint: check the dimensionality of the input image and include a call to the color
+    conversion function if the image has three channels at the start of the histogram
+    matching function so that the function deals with color and grayscale images.
 • Save the resulting image after the histogram matching into an image file (e.g., using the
-function imwrite)
+  function imwrite)
