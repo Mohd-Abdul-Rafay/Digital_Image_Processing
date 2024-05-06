@@ -1,0 +1,52 @@
+original_image = imread("chromosome.jpeg");
+se = strel("disk", 5);
+img_dilate = imdilate(original_image, se);
+edges = img_dilate - original_image;
+img = imbinarize(edges, "global");
+
+% Specify the value of 'r' for truncating Fourier descriptors
+r = 15; % Adjust this value as needed
+
+reconstructed_img = fourierShapeDescriptor(img, r);
+imshow(reconstructed_img,[]);
+
+
+function shape = fourierShapeDescriptor(img, r)
+    % Compute boundary coordinates
+    boundary = bwboundaries(img);
+    x_corodinates = boundary{1, 1}(:, 1);
+    y_coordinates = boundary{1, 1}(:, 2);
+    normalized_x = (x_corodinates - mean(x_corodinates)) / std(x_corodinates);
+    normalized_y = (y_coordinates - mean(y_coordinates)) / std(y_coordinates);
+    complex_coordinates = normalized_x + 1i * normalized_y;
+    
+    % Number of boundary points
+    N = numel(x_corodinates);
+    % Number of Fourier coefficients to keep
+    n = round(N / r);
+    nstart = floor(N / 2) - floor(n / 2) + 1;
+    nend = floor(N / 2) + floor(n / 2) + 1;
+    if nend > N
+        nend = N;
+    end
+    
+    % Compute Fourier shape descriptors
+    fourier_descriptors = fftshift(fft(complex_coordinates));
+    % Reconstruct the shape
+    fourier_shape = ifftshift([zeros(nstart - 1, 1); fourier_descriptors(nstart:nend); zeros(N - nend, 1)]);
+    fourier_shape = ifft(fourier_shape);
+    % Extract real and imaginary values of the shape
+    fourier_shape_x = real(fourier_shape);
+    fourier_shape_y = imag(fourier_shape);
+    
+    % Scale and shift the reconstructed shape to match original boundary
+    fourier_shape_x = round(mean(x_corodinates) + fourier_shape_x * std(x_corodinates));
+    fourier_shape_y = round(mean(y_coordinates) + fourier_shape_y * std(y_coordinates));
+    
+    % Create a binary image to represent the reconstructed shape
+    shape = zeros(size(img));
+    for i = 1:numel(fourier_shape_x)
+        shape(fourier_shape_x(i), fourier_shape_y(i)) = 1;
+    end
+                
+end
