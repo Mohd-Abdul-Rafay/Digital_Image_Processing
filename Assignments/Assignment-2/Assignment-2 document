@@ -3,11 +3,11 @@ Write a MATLAB script to complete the following tasks:
 • Equalize the histogram of the grayscale image using function histeq 
 • Write a histogram stretching function for processing color images
 • Display the input image, the equalized image, and the histogram stretched image in
-one figure 
+  one figure 
 • Display all channels of the color image ‘onion.png’ separately but in one figure 
 • Convert the color image ‘onion.png’ into HSV color space using function rgb2hsv
-and display all channels separately but in one figure 
+  and display all channels separately but in one figure 
 • Convert the color image ‘onion.png’ into YIQ color space using the function rgb2ntsc
-and display all channels separately but in one figure 
+  and display all channels separately but in one figure 
 • Write a function to change all the pixels that have a color other than red from the
-color image ‘onion.png’ to black and display the output image
+  color image ‘onion.png’ to black and display the output image
