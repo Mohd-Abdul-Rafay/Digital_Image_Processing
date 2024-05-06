@@ -1,17 +1,17 @@
 Write a MATLAB script to complete the following tasks:
 • Load the image ‘onion.png’ and convert it into a grayscale image, denoted with
-‘img1’.
+  ‘img1’.
 • Develop a function ‘myConv’ to perform convolution. The function takes two inputs:
-an image and a convolution kernel. If the image is a color image, perform convolution
-only to the intensity channel. The function returns the convolution result. An optional
-function parameter is the padding method. 
+  an image and a convolution kernel. If the image is a color image, perform convolution
+  only to the intensity channel. The function returns the convolution result. An optional
+  function parameter is the padding method. 
 • Create a copy of the clean grayscale image, denoted with ‘img2’, in the memory and
-add salt and pepper noise to it using imnoise 
+  add salt and pepper noise to it using imnoise 
 • Remove salt and pepper noise using function medfilt2 and display the clean (img1)
-and denoised image side by side (using subplot function) 
+  and denoised image side by side (using subplot function) 
 • Create a copy of the clean grayscale image, denoted with ‘img3’, in the memory and
-add Gaussian noise using imnoise. Remove Gaussian noise using imgaussfilt and save
-the result in ‘img4’ 
+  add Gaussian noise using imnoise. Remove Gaussian noise using imgaussfilt and save
+  the result in ‘img4’ 
 • Apply ‘myConv’ using an average filter to remove noise from ‘img3’ and save the
-result image in ‘img5’. Display img4 and img5 side by side 
+  result image in ‘img5’. Display img4 and img5 side by side 
 • Extract edges from img2 and img5 and display the results side by side.
