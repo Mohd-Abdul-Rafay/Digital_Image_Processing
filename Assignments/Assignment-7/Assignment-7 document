@@ -1,0 +1,16 @@
+Write a MATLAB script to complete the following tasks:
+• Load the image ‘peppers.png’ and denote it as img1.
+• Rotate the img1 by a random degree in the range of 10 to 40. The rotated image is
+denoted as img2.
+• Crop img2 into a smaller image of size 50 by 50 pixels, denoted as img3. The cropped
+image should be at (or close to) the center of img2. 
+• Write a function position=reg(img1, img3) to register img1 and img3. Hint: Use 2D
+cross-correlation (corr2(A, B)) to compute the best match. 
+o Note that nested for loops can be used to explore all combinations of
+translation and rotation.
+o When corr2 is used, the two inputs must be of the same size.
+o A matrix can be created to hold the cross-correlation value of different
+combinations. The maximum value of this cross-correlation matrix indicates
+the best alignment (registration).
+• Display the transformed img3 over image img1. Hint: use function imshowpair(A,
+B ,"blend") and the blend option overlay one image on top of the other.
