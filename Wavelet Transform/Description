@@ -1,0 +1,18 @@
+Write a MATLAB script to complete the following tasks:
+• Load the image ‘peppers.png’ and convert it into a grayscale image, denoted with
+  img1.
+• Write a function waveCoeff=WaveLetDec(img, level) to decompose an image into a
+  specified number of levels, e.g., 2 or 3. The function takes two arguments: the image
+  to be decomposed and the number of levels. It returns the wavelet coefficients. Hint:
+  A loop is needed, and you may use the MATLAB function dwt2 in the loop
+• Decompose img1 using WaveLetDec function using 3 levels. Display the wavelet
+  coefficients as an image. Hint: you need to rescale the values to the range of [0 255];
+  otherwise, the image appears black.
+• Reconstruct the edge map from all the detail subbands. Save the reconstructed edge
+  map into an image. Hint: set the approximation subband to zero.
+• Write a function imgR=iWaveLetRec(img) to reconstruct an image from wavelet
+  coefficients. The function takes the wavelet coefficients and returns the reconstructed
+  image. Hint: A loop is needed, and you may use the MATLAB function idwt2 in the
+  loop
+• Reduce the coefficient magnitude of the detail subbands by half and reconstruct the
+  image. Display the input image with the reconstructed image side by side.
