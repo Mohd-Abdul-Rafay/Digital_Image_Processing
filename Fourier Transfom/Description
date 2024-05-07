@@ -1,0 +1,13 @@
+Write a MATLAB script to complete the following tasks:
+• Load the image ‘onion.png’ and convert it into a grayscale image, denoted with img1.
+• Apply Fourier transform to img1 and the Fourier coefficient matrix is denoted with
+  freq1 
+• Display both the magnitude and phase components of freq1. 
+• Remove the low-frequency components from freq1 and save the result into freq2.
+  Reconstruct an image (imgR) from freq2. Note that you need to specify the threshold
+  of low frequency 
+• Display the reconstructed image imgR 
+• Construct and apply a low-pass spatial filter to img1 to generate an image imgR2 that
+  is similar to imgR 
+• Compute the pixel-to-pixel absolute difference between the spatial filtering result and
+  imgR and display the difference image
