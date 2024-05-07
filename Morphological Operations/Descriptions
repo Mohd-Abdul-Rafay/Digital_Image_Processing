@@ -1,0 +1,12 @@
+Write a MATLAB script to complete the following tasks:
+• Load the image ‘cell.tif’, denoted with img1.
+• Use Sobel edge detector to detect the object boundaries. Tune the threshold to get the
+  boundary as well as the internal texture. Display the result image. An example is
+  shown below.
+• Implement one or more structuring elements to dilate the edge map. Hint: MATLAB
+  functions strel and imdilate create structuring element and apply dilation. Line
+  structuring elements with different orientations can be used. The result image may
+  look like the following.
+• Fill the holes within the objects using imfill function.
+• Smooth the object using erosion operator with a diamond structuring element and
+  display the result image.
