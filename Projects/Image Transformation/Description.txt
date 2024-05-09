@@ -1,0 +1,7 @@
+Develop a program to achieve the following functions:
+• A GUI to allow user interactions for loading images, specifying operations and arguments,
+  and visualizing the outputs,
+• Loading one image and performing the user-specified transformation operations
+  (translation, rotation, scaling, and projection);
+• Allowing the user to specify up to three transformations at one time;
+• Allowing the user to save and display the input and the transformed image.
