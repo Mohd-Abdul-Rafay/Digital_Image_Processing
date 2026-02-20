@@ -1,23 +1,24 @@
 ## 02 — Color Spaces & Contrast Enhancement
 
-This module implements controlled experiments in color space transformations and intensity redistribution.
-It demonstrates how contrast manipulation and channel-wise decomposition affect image representation across perceptual and device-dependent domains.
+Controlled experiments in color space transformations and intensity redistribution.
 
-The goal is reproducible visualization and quantitative intensity modeling.
+This module evaluates how contrast manipulation and channel-wise decomposition influence image representation across RGB, HSV, and YIQ domains. The implementation emphasizes reproducibility, structured output export, and clear isolation of transformation effects.
 
 ---
 
-## Objectives
-1.	RGB → Grayscale projection
-2.	Histogram Equalization (global contrast redistribution)
-3.	Contrast Stretching via HSV Value channel
-4.	Channel decomposition in:
-    •	RGB
-    •	HSV
-    •	YIQ (NTSC)
-5.	Color-based masking (red-channel isolation)
+## Scope
 
-All outputs are automatically exported for reproducibility.
+This experiment includes:
+1.	RGB → Grayscale projection
+2.	Global Histogram Equalization (histeq)
+3.	Contrast Stretching in HSV Value channel (imadjust)
+4.	Channel decomposition
+	•	RGB
+	•	HSV
+	•	YIQ (NTSC transform)
+5.	Red-channel dominant masking (threshold-based segmentation)
+
+All outputs are programmatically generated and saved to ensure deterministic reproducibility.
 
 ---
 
@@ -42,33 +43,36 @@ All outputs are automatically exported for reproducibility.
 
 ## Methodology
 
-Histogram Equalization
+# Histogram Equalization
 
-Applied to grayscale projection using MATLAB’s histeq.
-This redistributes pixel intensities to approximate a uniform histogram.
+Grayscale projection is equalized using histeq, approximating a uniform intensity distribution to enhance global contrast.
 
-Contrast Stretching
+# HSV-Based Contrast Stretching
 
-Performed in HSV space by applying imadjust on the Value channel.
-Hue and saturation are preserved while intensity dynamic range is expanded.
+Intensity expansion is performed exclusively on the HSV Value channel using imadjust, preserving chromatic components (Hue, Saturation) while increasing dynamic range.
 
-Color Masking
+# Channel Decomposition
 
-A simple threshold-based red-channel mask isolates red-dominant pixels while suppressing others.
+Independent visualization of RGB, HSV, and YIQ channels isolates representation differences between device-dependent and perceptual color spaces.
+
+# Color Masking
+
+A deterministic threshold-based red dominance mask suppresses non-red pixels, demonstrating simple channel-based segmentation.
 
 ---
 
-## How to Run
+## Execution
 
-From MATLAB, navigate to this folder and execute:
+From MATLAB:
 ```bash
 main
 ```
-All results will be saved automatically inside the output/ directory.
+All outputs are exported automatically to the output/ directory.
 
 ---
 
-## Notes
-•	Designed for reproducibility and clean output exports.
-•	Demonstrates contrast modeling in multiple color representations.
-•	Suitable for foundational Digital Image Processing coursework and experimentation.
+## Design Principles
+•	Deterministic outputs
+•	Clean separation of transformations
+•	Explicit domain modeling (RGB vs HSV vs YIQ)
+•	Reproducible export pipeline
