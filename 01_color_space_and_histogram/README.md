@@ -43,6 +43,12 @@ Each transformation is exported programmatically to ensure reproducibility.
 
 ---
 
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
+
+---
 
 ## Run:
 
