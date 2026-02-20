@@ -36,6 +36,7 @@ All outputs are programmatically generated and saved to ensure deterministic rep
 │   ├── 05_hsv_channels.png
 │   ├── 06_yiq_channels.png
 │   └── 07_red_only_mask.png
+├── notes.html
 └── README.md
 ```
 
@@ -68,6 +69,13 @@ From MATLAB:
 main
 ```
 All outputs are exported automatically to the output/ directory.
+
+---
+
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
 
 ---
 
