@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 07 Notes — Brute-Force Rigid Registration (corr2 Grid Search)</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#9aa8bf; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+      --border:rgba(255,255,255,.08); --code:#0a1020;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background:radial-gradient(1100px 760px at 18% 0%, #111f3f 0%, var(--bg) 48%, #070b14 100%);
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1180px; margin:0 auto; padding:28px 18px 70px}
+    header{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.6}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; line-height:1.7}
+    .muted{color:var(--muted)}
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code); overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; line-height:1.6}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:700; color:#dbe7ff}
+    .tbl{
+      width:100%; border-collapse:separate; border-spacing:0;
+      overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px;
+    }
+    .tbl th,.tbl td{padding:10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    .eq{
+      display:block; padding:10px 12px; border-radius:14px;
+      border:1px dashed rgba(255,255,255,.16); background:rgba(110,231,255,.06);
+      font-family:var(--mono); overflow:auto;
+    }
+    .kpi{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px}
+    @media (max-width: 740px){ .kpi{grid-template-columns:1fr} }
+    .kpi .box{
+      border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.03);
+      padding:12px;
+    }
+    .kpi .box b{display:block; margin-bottom:4px}
+    .callout{
+      border:1px solid var(--border); border-radius:14px; padding:12px;
+      background:rgba(167,139,250,.07); margin-top:10px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(110,231,255,.14), rgba(110,231,255,.05));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0; display:none;
+    }
+    .warn{background:rgba(251,191,36,.08); color:#fff3d1;}
+    .bad{background:rgba(251,113,133,.09); color:#ffe4ea;}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>07 — Brute-Force Rigid Registration (corr2 Grid Search)</h1>
+      <p class="sub">
+        Notes for the MATLAB baseline: synthesize a target (rotate + crop + black-canvas embed), then recover alignment by
+        maximizing <b>corr2</b> over a <b>translation × rotation</b> grid.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Rigid model: rotation + translation (2D)</span>
+        <span class="pill">Objective: maximize correlation (<code>corr2</code>)</span>
+        <span class="pill">Search: tx,ty ∈ [-10,10], θ ∈ [0,360]</span>
+        <span class="pill">Exports: target synthesis + best params + blend</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) The registration problem (what you’re solving)</h2>
+        <p class="muted">
+          Image registration estimates a transform that aligns a moving image to a fixed reference.
+          In this module the transform is <b>rigid</b> in 2D: a rotation plus a translation.
+        </p>
+
+        <h3>Rigid transform model</h3>
+        <div class="eq">
+          For a point x = [x, y]^T:<br/>
+          x' = R(θ) x + t<br/>
+          R(θ) = [[cosθ, -sinθ], [sinθ, cosθ]]<br/>
+          t = [tx, ty]^T
+        </div>
+
+        <p class="muted">
+          Your code applies this in reverse (transform the source image many ways) and selects the parameters that
+          best match the target under a similarity score.
+        </p>
+
+        <h3>What makes this baseline “transparent”</h3>
+        <ul class="list">
+          <li>No learning, no hidden optimization: you enumerate candidates and pick the best.</li>
+          <li>You can audit failure by inspecting intermediate artifacts (<code>01..05</code> outputs).</li>
+          <li>Search ranges are explicit and interpretable.</li>
+        </ul>
+
+        <details>
+          <summary>What “registration” means in practical CV work</summary>
+          <ul class="list">
+            <li><b>Medical:</b> align scans across time or modalities.</li>
+            <li><b>Robotics:</b> align camera frames or map updates.</li>
+            <li><b>Remote sensing:</b> align aerial tiles for mosaics/change detection.</li>
+            <li><b>Industrial:</b> align inspection images for defect localization.</li>
+          </ul>
+        </details>
+
+        <h3>Computational cost (why brute-force is expensive)</h3>
+        <p class="muted">
+          Total evaluations = |Tx| × |Ty| × |Θ|. With tx,ty in 21 steps each, and 361 rotations:
+        </p>
+        <div class="eq">
+          21 × 21 × 361 = 159,201 corr2 evaluations
+        </div>
+        <p class="muted">
+          That’s fine for teaching and small images; for production you’d reduce the search or use multi-resolution / feature-based methods.
+        </p>
+      </section>
+
+      <aside class="card">
+        <h2>2) Similarity metric: corr2 (normalized correlation)</h2>
+
+        <p class="muted">
+          <code>corr2(A,B)</code> is the Pearson correlation coefficient between the two images treated as vectors.
+          It rewards linear intensity agreement and penalizes mean/scale mismatch.
+        </p>
+
+        <div class="eq">
+          corr(A,B) = Σ (Aᵢ - μA)(Bᵢ - μB) / (σA σB)
+        </div>
+
+        <h3>Interpretation</h3>
+        <ul class="list">
+          <li>Range: approximately [-1, 1]. Higher is better for similarity.</li>
+          <li>Invariant to affine intensity changes (shift/scale) to some extent.</li>
+          <li>Requires same image size (your pipeline ensures that).</li>
+        </ul>
+
+        <details>
+          <summary>When corr2 is the wrong metric</summary>
+          <ul class="list">
+            <li><b>Illumination changes:</b> strong non-linear lighting or shadows can break correlation.</li>
+            <li><b>Large background:</b> if most pixels are constant (e.g., black canvas), corr2 can be dominated by background.</li>
+            <li><b>Multimodal images:</b> CT vs MRI-like cases need mutual information (MI) style metrics.</li>
+          </ul>
+        </details>
+
+        <div class="callout">
+          <b>Important in your setup:</b>
+          because <code>img3</code> has a large black area, the score can be biased toward matching background.
+          This is acceptable for a teaching baseline, but in real pipelines you'd use a mask/ROI-weighted similarity.
+        </div>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) Target synthesis: rotate → crop → embed (and why it matters)</h2>
+
+      <p class="muted">
+        You intentionally create a harder target: a small patch of the rotated image embedded in a black canvas.
+        This mimics scenarios where only a region overlaps (partial overlap / occlusion).
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>Operation</th><th>What it does</th><th>What it changes mathematically</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>imrotate(...,"crop")</b></td>
+            <td>Rotates but preserves output size by cropping to original bounds.</td>
+            <td>Introduces interpolation + discards corners (information loss).</td>
+          </tr>
+          <tr>
+            <td><b>center crop 50×50</b></td>
+            <td>Extracts a small ROI from the rotated image.</td>
+            <td>Creates partial overlap; similarity metric becomes ROI-driven (if weighted correctly).</td>
+          </tr>
+          <tr>
+            <td><b>embed on black canvas</b></td>
+            <td>Creates a target with sparse foreground and large uniform background.</td>
+            <td>Can bias correlation; encourages background agreement unless handled.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>Interpolation + aliasing (why rotation can distort signals)</summary>
+        <ul class="list">
+          <li>Rotation requires resampling; bilinear interpolation is a low-pass-ish smoothing.</li>
+          <li>Repeated rotate/translate can blur fine textures; correlation may degrade.</li>
+          <li>"crop" throws away content near edges; recovered transform can be less stable.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Why you force integer x/y indices</summary>
+        <p class="muted">
+          Array indexing requires integer indices. Your refined version ensures the crop ROI is valid and in-bounds,
+          so the pipeline is deterministic and doesn't crash at runtime.
+        </p>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) Reading your outputs (debugging by artifacts)</h2>
+
+      <table class="tbl">
+        <thead><tr><th>File</th><th>What “good” looks like</th><th>If it looks wrong…</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>01_original.png</b></td>
+            <td>Original image.</td>
+            <td>Not an issue; baseline reference.</td>
+          </tr>
+          <tr>
+            <td><b>02_rotated_crop.png</b></td>
+            <td>Rotated image, same canvas size.</td>
+            <td>If heavy blur/aliasing → interpolation + crop effects are dominating.</td>
+          </tr>
+          <tr>
+            <td><b>03_target_masked.png</b></td>
+            <td>Black canvas with a centered 50×50 patch.</td>
+            <td>If patch shifted/cut off → ROI bounds or paste indices incorrect.</td>
+          </tr>
+          <tr>
+            <td><b>04_best_params.txt</b></td>
+            <td>Max corr, rotation, translation reported.</td>
+            <td>If rotation is nonsense → metric dominated by background; try masking or smaller background.</td>
+          </tr>
+          <tr>
+            <td><b>05_blend.png</b></td>
+            <td>Patch aligns visually with the corresponding region in original.</td>
+            <td>If misaligned → search range too small, step too coarse, or score not informative.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>Primary knobs (what you tune first)</summary>
+        <ul class="list">
+          <li><b>Search range:</b> widen translation range if alignment is outside ±10 px.</li>
+          <li><b>Rotation step:</b> 1° is fine; coarser steps are faster but less accurate.</li>
+          <li><b>ROI size:</b> larger patch increases signal but can reduce robustness under occlusion.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Why “blend” is a good qualitative check</summary>
+        <ul class="list">
+          <li>Registration is easy to fool numerically; blend reveals misalignment instantly.</li>
+          <li>If only background matches, blend will show no meaningful overlap.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>5) Where to go next (still classical, more “real”) </h2>
+
+      <h3>Drop-in improvements that preserve your pipeline spirit</h3>
+      <ul class="list">
+        <li><b>ROI-masked correlation:</b> compute corr2 only over non-black pixels of the target (foreground mask).</li>
+        <li><b>Multi-resolution search:</b> coarse-to-fine pyramid (fast + stable).</li>
+        <li><b>Gradient-based similarity:</b> correlate Sobel magnitude images instead of raw intensity.</li>
+        <li><b>Feature-based registration:</b> detect keypoints (e.g., SURF/ORB), match, estimate transform with RANSAC.</li>
+      </ul>
+
+      <details>
+        <summary>Why masking matters for your embedded target</summary>
+        <p class="muted">
+          In a sparse target, background pixels vastly outnumber the ROI pixels.
+          Masked scoring ensures the similarity objective is driven by the informative region.
+        </p>
+      </details>
+
+      <footer>
+        README tip: add one line — <code>See notes.html for rigid registration theory, corr2 objective, and grid-search trade-offs.</code>
+      </footer>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>6) Quick checks (interactive)</h2>
+      <p class="muted">Short comprehension checks. No data modification.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 1: What transform family is being searched?</h3>
+          <select id="q1" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">Rigid (rotation + translation)</option>
+            <option value="b">Affine with shear</option>
+            <option value="c">Non-rigid deformation</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q1','a','o1')">Check</button>
+          <div id="o1" class="out"></div>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 2: Why can corr2 fail with a black canvas target?</h3>
+          <select id="q2" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">Background dominates the score unless you mask the ROI</option>
+            <option value="b">corr2 only works for RGB images</option>
+            <option value="c">corr2 ignores translation</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q2','a','o2')">Check</button>
+          <div id="o2" class="out"></div>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03); margin-top:12px;">
+        <h3 style="margin-top:0;">Check 3: What is the trade-off of using 1° rotation steps?</h3>
+        <select id="q3" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+          <option value="">Select…</option>
+          <option value="a">More accurate, but slower</option>
+          <option value="b">Faster, but more accurate</option>
+          <option value="c">No effect on speed</option>
+        </select>
+        <button class="btn" style="margin-top:10px;" onclick="grade('q3','a','o3')">Check</button>
+        <div id="o3" class="out"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, cls){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.remove("warn","bad");
+      if(cls) el.classList.add(cls);
+    }
+    function grade(qid, correct, outid){
+      const v = document.getElementById(qid).value;
+      const out = document.getElementById(outid);
+      if(!v){ show(out, "Pick an option.", "warn"); return; }
+      if(v === correct) show(out, "Correct.", "");
+      else show(out, "Incorrect. Re-check the rigid model, corr2 behavior, and grid-search trade-offs.", "bad");
+    }
+  </script>
+</body>
+</html>
