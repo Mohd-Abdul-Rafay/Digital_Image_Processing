@@ -49,6 +49,21 @@ Texture modeling and similarity ranking using handcrafted descriptors.
 
 ---
 
+## Interactive Notes (Explorable Documentation)
+
+Each module ships with an accompanying `notes.html` (and/or `notes.md`) that explains:
+- the underlying concept (what problem the operation solves),
+- the math/intuition (what changes in the representation),
+- parameter effects and common failure modes,
+- how to interpret exported outputs.
+
+These notes are designed as **explorable documentation** for reproducible classical vision baselines.
+
+**How to use:** open `notes.html` in a browser (or use GitHub Pages if enabled).  
+Tip: start with **Module 01** and follow the modules in order.
+
+---
+
 ## Design Characteristics
 
 - Classical CV focus (no deep learning)
