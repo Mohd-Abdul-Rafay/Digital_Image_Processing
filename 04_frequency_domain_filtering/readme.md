@@ -1,64 +1,70 @@
-## 04 — Frequency-Domain Filtering and Spatial Equivalence Analysis
+## 04 — Frequency-Domain Filtering and Spatial Equivalence
 
-This module investigates low-pass filtering in both the frequency domain (via Fourier transform) and the spatial domain (via Gaussian convolution), and evaluates their structural equivalence.
+This module analyzes Gaussian low-pass filtering in both the frequency domain and the spatial domain, and evaluates their structural equivalence.
 
-The objective is to demonstrate how frequency-domain Gaussian filtering corresponds to spatial-domain Gaussian smoothing, and to quantify reconstruction differences.
+It demonstrates how Fourier-domain attenuation corresponds to spatial Gaussian smoothing, and quantifies reconstruction discrepancies introduced by implementation differences and boundary conditions.
 
 ---
 
 ## Scope
 
-The pipeline includes:
-- 2D Fast Fourier Transform (FFT) with magnitude and phase visualization
-- Gaussian Low-Pass Filter (LPF) constructed directly in frequency space
-- Image reconstruction via inverse FFT
-- Spatial Gaussian smoothing using imgaussfilt
-- Absolute difference analysis between frequency and spatial results
+The pipeline performs:
+	•	2D FFT with magnitude and phase visualization
+	•	Gaussian Low-Pass Filter (LPF) constructed in frequency space
+	•	Reconstruction via inverse FFT
+	•	Spatial Gaussian filtering using imgaussfilt
+	•	Absolute difference analysis between domain implementations
 
-All outputs are exported deterministically to the output/ directory.
+All outputs are exported deterministically to output/.
 
 ---
 
 ## Technical Overview
 
-1) Fourier Decomposition
+### 1) Fourier Decomposition
 
-  The grayscale image is transformed using:
+The grayscale image is transformed using:
   ```bash
   F = fftshift(fft2(image))
   ```
-  Magnitude and phase components are visualized independently to isolate structural and phase information.
+Magnitude and phase are visualized independently to separate:
+- Magnitude (energy distribution across frequencies)
+- Phase (structure / alignment information)
 
-  Magnitude is log-scaled for numerical stability and visibility.
+Magnitude is log-scaled for visibility.
 
-2) Frequency-Domain Gaussian Low-Pass Filtering
+### 2) Frequency-Domain Gaussian Low-Pass Filtering
 
-  A Gaussian filter centered at the DC component is constructed:
+A Gaussian LPF centered at the DC component is defined as:
 
-  H(u,v) = e^{-\frac{u^2 + v^2}{2\sigma^2}}
+[
+H(u,v) = e^{-\frac{u^2 + v^2}{2\sigma^2}}
+]
 
-  This preserves low-frequency components (global structure) while attenuating high-frequency components (edges, noise).
+This preserves low-frequency structure while attenuating high-frequency detail.
+Reconstruction is performed using:
+```bash
+img_freq = ifft2(ifftshift(F .* H));
+```
 
-  The filtered spectrum is reconstructed using:
-  ```bash
-  ifft2(ifftshift(F .* H))
-  ```
+### 3) Spatial-Domain Gaussian Filtering
 
-3) Spatial-Domain Gaussian Filtering
+A Gaussian filter is applied directly in the spatial domain:
+```bash
+img_spatial = imgaussfilt(image, sigma);
+```
+This serves as the spatial equivalent of the frequency-domain Gaussian LPF.
 
-  A Gaussian filter is applied directly in the spatial domain using:
-  ```bash
-  imgaussfilt(image, sigma)
-  ```
-  This serves as the spatial-domain equivalent of the frequency-domain Gaussian LPF.
+### 4) Structural Difference Analysis
 
-4) Structural Difference Analysis
+The absolute pixel-wise difference between:
+- frequency-domain reconstruction, and
+- spatial-domain smoothing
 
-  The absolute pixel-wise difference between:
-  - Frequency-domain reconstruction
-  - Spatial-domain smoothing
-
-is computed to evaluate equivalence and numerical deviations.
+is computed to quantify equivalence and implementation differences:
+```bash
+abs_diff = abs(double(img_spatial) - double(img_freq));
+```
 
 ---
 
@@ -92,18 +98,15 @@ All visualizations and reconstructed outputs are saved automatically to output/.
 ---
 
 ## Design Emphasis
-- Explicit separation of magnitude and phase components
-- Controlled Gaussian LPF modeling in frequency space
-- Direct comparison with spatial-domain Gaussian smoothing
-- Quantitative reconstruction difference evaluation
-- Deterministic export pipeline
+- Explicit magnitude/phase inspection (diagnostic clarity)
+- Gaussian LPF modeled directly in frequency space (controlled attenuation)
+- Spatial-domain equivalent using imgaussfilt (baseline comparison)
+- Quantitative reconstruction difference map (equivalence validation)
+- Deterministic output exports for clean versioning
 
 ---
 
 ## Conceptual Insight
 
-This module reinforces a fundamental signal processing principle:
-
-- Gaussian filtering in the spatial domain corresponds to Gaussian attenuation in the frequency domain.
-
-The absolute difference analysis highlights numerical and boundary-condition discrepancies between implementations.
+Gaussian smoothing in the spatial domain corresponds to Gaussian attenuation in the frequency domain.
+Any residual difference primarily reflects boundary handling, numeric precision, and implementation details across domains.
