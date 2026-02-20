@@ -1,0 +1,8 @@
+Candidate,LBP_EuclideanDistance
+bricksRotated (orig),0.0771374404430389
+carpet (orig),0.157967373728752
+rice (orig),0.587882459163666
+bricks (rot -45),0.642910361289978
+bricksRotated (rot -45),0.646137595176697
+carpet (rot -45),0.656209409236908
+rice (rot -45),0.778524577617645

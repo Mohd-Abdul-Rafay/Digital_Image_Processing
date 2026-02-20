@@ -1,0 +1,12 @@
+Reference: bricks (orig)
+Best match: bricksRotated (orig)
+Best (lowest) LBP Euclidean distance: 0.077137
+
+Full ranking:
+ 1) bricksRotated (orig)          0.077137
+ 2) carpet (orig)                 0.157967
+ 3) rice (orig)                   0.587882
+ 4) bricks (rot -45)              0.642910
+ 5) bricksRotated (rot -45)       0.646138
+ 6) carpet (rot -45)              0.656209
+ 7) rice (rot -45)                0.778525
