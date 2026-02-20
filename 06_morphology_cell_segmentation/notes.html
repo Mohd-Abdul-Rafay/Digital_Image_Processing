@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 06 Notes — Morphology-Based Cell Segmentation (Sobel → Dilate → Fill → Erode)</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#9aa8bf; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24;
+      --border:rgba(255,255,255,.08); --code:#0a1020;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background:radial-gradient(1100px 760px at 18% 0%, #111f3f 0%, var(--bg) 48%, #070b14 100%);
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1150px; margin:0 auto; padding:28px 18px 70px}
+    header{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.6}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; line-height:1.7}
+    .muted{color:var(--muted)}
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code); overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; line-height:1.6}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:700; color:#dbe7ff}
+    .tbl{
+      width:100%; border-collapse:separate; border-spacing:0;
+      overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px;
+    }
+    .tbl th,.tbl td{padding:10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    .eq{
+      display:block; padding:10px 12px; border-radius:14px;
+      border:1px dashed rgba(255,255,255,.16); background:rgba(110,231,255,.06);
+      font-family:var(--mono); overflow:auto;
+    }
+    .kpi{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px}
+    @media (max-width: 740px){ .kpi{grid-template-columns:1fr} }
+    .kpi .box{
+      border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.03);
+      padding:12px;
+    }
+    .kpi .box b{display:block; margin-bottom:4px}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(167,139,250,.16), rgba(167,139,250,.06));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0; display:none;
+    }
+    .warn{background:rgba(251,191,36,.08); color:#fff3d1;}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>06 — Morphology-Based Cell Segmentation</h1>
+      <p class="sub">
+        Notes for the MATLAB baseline pipeline: <b>Sobel edges → dilation (two line SEs) → hole filling → erosion smoothing</b>.
+        This is a transparent classical segmentation recipe that converts boundary evidence into a stable binary mask.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Input: <code>input/cell.tif</code> (grayscale expected)</span>
+        <span class="pill">Outputs: <code>01..06</code> exported to <code>output/</code></span>
+        <span class="pill">Toolbox: Image Processing Toolbox (<code>edge</code>, <code>strel</code>, <code>imdilate</code>, <code>imfill</code>, <code>imerode</code>)</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) What the pipeline is actually doing</h2>
+        <p class="muted">
+          You can think of this module as a controlled conversion:
+          <b>Intensity image → boundary map → connected contours → filled regions → cleaned mask</b>.
+          Each operator is simple, but the sequence is what makes it work.
+        </p>
+
+        <div class="kpi">
+          <div class="box"><b>Edge evidence</b><div class="muted">Sobel detects strong gradients (cell boundaries).</div></div>
+          <div class="box"><b>Connectivity repair</b><div class="muted">Dilation bridges gaps / thickens weak edges.</div></div>
+          <div class="box"><b>Region completion</b><div class="muted">Hole filling converts closed contours into objects.</div></div>
+        </div>
+
+        <h3>Why this sequence (Sobel → Dilate → Fill → Erode) is common</h3>
+        <ul class="list">
+          <li><b>Sobel</b> finds likely object boundaries but usually produces broken, thin edges.</li>
+          <li><b>Dilation</b> connects these fragments so that object contours become closed loops.</li>
+          <li><b>Hole filling</b> turns closed loops into solid blobs (object masks).</li>
+          <li><b>Erosion</b> cleans jagged boundaries and removes small spurs created by dilation.</li>
+        </ul>
+
+        <details>
+          <summary>Where this baseline fails (and why)</summary>
+          <ul class="list">
+            <li><b>Weak contrast:</b> Sobel may miss boundaries → fill step has nothing to close.</li>
+            <li><b>Touching cells:</b> dilation + fill can merge adjacent cells into one region.</li>
+            <li><b>Speckle/noise:</b> Sobel can fire on noise; threshold too low makes mask noisy.</li>
+            <li><b>Non-closed edges:</b> if contours don’t close, <code>imfill</code> won’t produce clean objects.</li>
+          </ul>
+        </details>
+
+        <h3>Minimal math (just enough)</h3>
+        <div class="eq">
+          Sobel approximates image gradient magnitude using convolution:<br/>
+          Gx = I * Sx,  Gy = I * Sy<br/>
+          |G| ≈ √(Gx² + Gy²)  (MATLAB internally thresholds based on edge method)<br/><br/>
+          Morphology (binary):<br/>
+          Dilation: A ⊕ B  (expands A by structuring element B)<br/>
+          Erosion:  A ⊖ B  (shrinks A by structuring element B)
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>2) Mapping your code → theory</h2>
+
+        <table class="tbl">
+          <thead><tr><th>Code step</th><th>What it means</th><th>Why it helps</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>edge(img,"sobel",0.026)</b></td>
+              <td>Binary edge map using Sobel gradient + explicit threshold.</td>
+              <td>Controls sensitivity; higher threshold reduces false edges.</td>
+            </tr>
+            <tr>
+              <td><b>strel("line",3,0)</b></td>
+              <td>Line structuring element (length 3) oriented at 0°.</td>
+              <td>Bridges small horizontal gaps in contours.</td>
+            </tr>
+            <tr>
+              <td><b>strel("line",3,90)</b></td>
+              <td>Line structuring element oriented at 90°.</td>
+              <td>Bridges vertical gaps; combining both improves connectivity.</td>
+            </tr>
+            <tr>
+              <td><b>imdilate(edges,seH); imdilate(...,seV)</b></td>
+              <td>Two-pass dilation.</td>
+              <td>Thickens/joins edges in both orientations without a large isotropic SE.</td>
+            </tr>
+            <tr>
+              <td><b>imfill(...,"holes")</b></td>
+              <td>Fill interior holes of connected foreground regions.</td>
+              <td>Converts closed boundaries into full object masks.</td>
+            </tr>
+            <tr>
+              <td><b>strel("diamond",2)</b></td>
+              <td>Diamond-shaped SE (radius 2), near-isotropic on grid.</td>
+              <td>Smooths boundaries, trims spurs created by dilation/fill.</td>
+            </tr>
+            <tr>
+              <td><b>imerode(filled,seSmooth)</b></td>
+              <td>Erosion of the filled mask.</td>
+              <td>Regularizes shape and suppresses small artifacts.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <details>
+          <summary>Why two line SEs instead of one disk SE?</summary>
+          <ul class="list">
+            <li>Small line SEs can connect breaks directionally without over-growing everything.</li>
+            <li>A disk SE (even small) can merge nearby objects faster (risk: touching cells merge).</li>
+            <li>Orthogonal lines approximate “connectivity repair” while staying conservative.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>What the threshold 0.026 really means</summary>
+          <p class="muted">
+            For Sobel, the threshold is applied to the gradient magnitude (normalized internally).
+            Lower values detect more edges (including noise); higher values keep only strong boundaries.
+            Treat it as the <b>primary knob</b> for precision vs recall of edges.
+          </p>
+        </details>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) How to read the exported outputs</h2>
+
+      <table class="tbl">
+        <thead><tr><th>File</th><th>What you should see</th><th>Diagnosis if it looks wrong</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>01_original.png</b></td>
+            <td>Grayscale microscopy-like image.</td>
+            <td>If very dark/bright, consider contrast normalization before edges.</td>
+          </tr>
+          <tr>
+            <td><b>02_sobel_edges.png</b></td>
+            <td>Thin boundary traces around cells.</td>
+            <td>If too sparse → threshold too high. If too noisy → threshold too low.</td>
+          </tr>
+          <tr>
+            <td><b>03_dilated_edges.png</b></td>
+            <td>Thicker, more connected contours.</td>
+            <td>If merged blobs → dilation too strong (SE length too large).</td>
+          </tr>
+          <tr>
+            <td><b>04_filled.png</b></td>
+            <td>Solid filled regions (cells) assuming contours closed.</td>
+            <td>If nothing fills → contours not closed (increase dilation or improve edges).</td>
+          </tr>
+          <tr>
+            <td><b>05_smoothed_mask.png</b></td>
+            <td>Cleaner, less jagged cell mask.</td>
+            <td>If objects vanish → erosion too strong (reduce diamond size).</td>
+          </tr>
+          <tr>
+            <td><b>06_pipeline_summary.png</b></td>
+            <td>2×3 grid for quick audit.</td>
+            <td>Use this to identify which step breaks first.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>What to tune first (minimal, practical)</summary>
+        <ul class="list">
+          <li><b>Sobel threshold</b> (0.026): primary sensitivity control.</li>
+          <li><b>Dilation SE length</b> (3): increase to close larger gaps; decreases separation between nearby cells.</li>
+          <li><b>Erosion diamond radius</b> (2): reduce if masks shrink too much; increase if jagged edges remain.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>Common improvements (still classical, still transparent)</summary>
+        <ul class="list">
+          <li><b>Pre-smoothing:</b> apply a small Gaussian blur before Sobel to reduce noise edges.</li>
+          <li><b>Adaptive threshold:</b> Otsu or percentile threshold on gradient magnitude (instead of fixed).</li>
+          <li><b>Opening/closing:</b> use <code>imopen</code>/<code>imclose</code> to remove specks or close gaps.</li>
+          <li><b>Distance transform + watershed:</b> separate touching cells after you get a filled mask.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) Quick checks (interactive)</h2>
+      <p class="muted">Comprehension checks. No data modification.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 1: Why dilate before imfill?</h3>
+          <select id="q1" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">To close small gaps so contours become fillable regions</option>
+            <option value="b">To make the image grayscale again</option>
+            <option value="c">To remove all edges</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q1','a','o1')">Check</button>
+          <div id="o1" class="out"></div>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 2: What happens if erosion is too strong?</h3>
+          <select id="q2" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">Masks shrink; small objects can disappear</option>
+            <option value="b">Edges become thicker and merge more</option>
+            <option value="c">Holes get filled automatically</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q2','a','o2')">Check</button>
+          <div id="o2" class="out"></div>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03); margin-top:12px;">
+        <h3 style="margin-top:0;">Check 3: What is the main trade-off of lowering the Sobel threshold?</h3>
+        <select id="q3" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+          <option value="">Select…</option>
+          <option value="a">More edges found, but more noise/false positives</option>
+          <option value="b">Fewer edges found, but cleaner mask</option>
+          <option value="c">No effect on edges</option>
+        </select>
+        <button class="btn" style="margin-top:10px;" onclick="grade('q3','a','o3')">Check</button>
+        <div id="o3" class="out"></div>
+      </div>
+
+      <footer>
+        README tip: add one line — <code>See notes.html for Sobel + morphology theory, parameter tuning, and failure modes.</code>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, warn=false){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.toggle("warn", warn);
+    }
+    function grade(qid, correct, outid){
+      const v = document.getElementById(qid).value;
+      const out = document.getElementById(outid);
+      if(!v){ show(out, "Pick an option.", true); return; }
+      if(v === correct) show(out, "Correct.");
+      else show(out, "Incorrect. Re-check the goal of each morphology step.", true);
+    }
+  </script>
+</body>
+</html>
