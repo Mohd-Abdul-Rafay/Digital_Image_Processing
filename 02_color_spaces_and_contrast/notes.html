@@ -1,1 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 02 Notes — Color Spaces & Contrast Enhancement</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#95a3b8; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24;
+      --border:rgba(255,255,255,.08);
+      --code:#0a1020; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:var(--sans); background:radial-gradient(1200px 800px at 20% 0%, #111f3f 0%, var(--bg) 45%, #070b14 100%); color:var(--text);}
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1050px; margin:0 auto; padding:28px 18px 64px}
+    header{
+      border:1px solid var(--border); background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.45}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px 16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; color:var(--text); line-height:1.6}
+    .muted{color:var(--muted)}
+    .k{color:var(--accent)}
+    .k2{color:var(--accent2)}
+    .callout{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      border-radius:14px; padding:12px 12px; margin:12px 0;
+    }
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code);
+      overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; color:var(--text); line-height:1.55}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:600; color:#dbe7ff}
+    .quiz{
+      display:grid; gap:10px; margin-top:10px;
+    }
+    .q{
+      border:1px solid var(--border); border-radius:14px; padding:12px;
+      background:rgba(255,255,255,.03);
+    }
+    .q label{display:block; margin:8px 0; color:var(--muted)}
+    select, input[type="range"]{
+      width:100%; margin-top:8px;
+      accent-color: var(--accent);
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(110,231,255,.16), rgba(110,231,255,.06));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0;
+      display:none;
+    }
+    .warn{
+      background:rgba(251,191,36,.08);
+      color:#fff3d1;
+    }
+    .tbl{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px}
+    .tbl th,.tbl td{padding:10px 10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>02 — Color Spaces & Contrast Enhancement</h1>
+      <p class="sub">
+        Notes for the MATLAB pipeline that performs <span class="k">grayscale histogram equalization</span>,
+        <span class="k2">HSV value-channel contrast stretching</span>, and channel visualization in
+        <span class="k">RGB / HSV / YIQ</span>, plus a simple <span class="k2">red-pixel mask</span>.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Input: <code>input/onion.png</code></span>
+        <span class="pill">Outputs: <code>output/*.png</code></span>
+        <span class="pill">Core ops: <code>histeq</code>, <code>imadjust</code>, <code>rgb2hsv</code>, <code>rgb2ntsc</code></span>
+      </div>
+    </header>
 
+    <div class="grid">
+      <section class="card">
+        <h2>1) What this module demonstrates</h2>
+        <p class="muted">
+          The same scene can be represented in multiple color spaces. Some operations (like contrast stretching)
+          are safer when applied to an intensity-like channel rather than directly to RGB channels.
+        </p>
+
+        <table class="tbl">
+          <thead>
+            <tr><th>Step</th><th>Why it exists</th><th>Where in your code</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>RGB → Grayscale</b></td>
+              <td>Reduce color to luminance for histogram-based contrast operations.</td>
+              <td><code>imgGray = rgb2gray(imgRGB)</code></td>
+            </tr>
+            <tr>
+              <td><b>Histogram Equalization</b></td>
+              <td>Redistribute grayscale intensities to enhance global contrast.</td>
+              <td><code>imgEq = histeq(imgGray)</code></td>
+            </tr>
+            <tr>
+              <td><b>HSV V-stretch</b></td>
+              <td>Stretch intensity while preserving hue & saturation.</td>
+              <td><code>v2 = imadjust(v)</code></td>
+            </tr>
+            <tr>
+              <td><b>RGB/HSV/YIQ channels</b></td>
+              <td>Interpret what each channel “means” and how information is separated.</td>
+              <td><code>imsplit(...)</code> + <code>montage</code></td>
+            </tr>
+            <tr>
+              <td><b>Keep red-like pixels</b></td>
+              <td>Demonstrate simple color segmentation via thresholding (baseline).</td>
+              <td><code>mask = (R>=rMin)&(G&lt;gMax)&(B&lt;bMax)</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <details>
+          <summary>Key idea: “Do contrast on intensity, not on raw RGB.”</summary>
+          <p class="muted">
+            If you stretch RGB channels independently, you can change colors (hue shifts). HSV isolates intensity
+            (V) so you can expand brightness range while keeping the color components (H,S) stable.
+          </p>
+        </details>
+      </section>
+
+      <aside class="card">
+        <h2>2) Quick mental models</h2>
+
+        <div class="callout">
+          <h3>Histogram Equalization (Grayscale)</h3>
+          <p class="muted">
+            Think “spread out” pixel intensities. If many pixels cluster in a narrow range, the image looks flat.
+            <code>histeq</code> remaps intensities so the histogram becomes more uniform.
+          </p>
+          <pre><code>imgEq = histeq(imgGray);</code></pre>
+        </div>
+
+        <div class="callout">
+          <h3>Contrast Stretching (HSV Value Channel)</h3>
+          <p class="muted">
+            <code>imadjust</code> does a monotonic remap that expands the dynamic range of <b>V</b>.
+            Hue/Saturation remain unchanged.
+          </p>
+          <pre><code>hsv = rgb2hsv(img);
+[h,s,v] = imsplit(hsv);
+v2 = imadjust(v);
+out = hsv2rgb(cat(3,h,s,v2));</code></pre>
+        </div>
+
+        <div class="callout">
+          <h3>YIQ (via <code>rgb2ntsc</code>)</h3>
+          <p class="muted">
+            <b>Y</b> ≈ luminance. <b>I</b> and <b>Q</b> carry chrominance. It’s useful historically and conceptually:
+            “separate brightness from color” (similar motivation to HSV / YCbCr).
+          </p>
+        </div>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) Threshold masking: what it is and what it is not</h2>
+      <p class="muted">
+        Your <b>red-only</b> mask is intentionally simple (good for coursework and a baseline), but it is not
+        illumination-invariant. If lighting changes, those fixed thresholds may fail.
+      </p>
+
+      <details>
+        <summary>Why fixed RGB thresholds can break</summary>
+        <ul class="list">
+          <li><b>Brightness changes:</b> all channels scale up/down, shifting the mask.</li>
+          <li><b>White balance:</b> camera color temperature can change R/G/B ratios.</li>
+          <li><b>Shadows/speculars:</b> red regions may lose saturation or clip values.</li>
+        </ul>
+      </details>
+
+      <details>
+        <summary>If you ever extend this (optional): better baseline masks</summary>
+        <ul class="list">
+          <li><b>HSV-based:</b> threshold in Hue range for “red”, then require S & V minimums.</li>
+          <li><b>YCbCr-based:</b> segment using chroma channels to reduce sensitivity to brightness.</li>
+        </ul>
+        <p class="muted">
+          For this repository, your current approach is fine as long as you label it clearly as a baseline.
+        </p>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) Interactive checks (small, practical)</h2>
+      <p class="muted">
+        These don’t modify your results; they teach how parameters affect behavior.
+      </p>
+
+      <div class="quiz">
+        <div class="q">
+          <b>Check 1: When should you prefer HSV Value stretching over per-channel RGB stretching?</b>
+          <label>
+            <select id="q1">
+              <option value="">Select…</option>
+              <option value="a">When you want to preserve color (hue) while improving contrast</option>
+              <option value="b">When you want to intentionally shift colors</option>
+              <option value="c">When the image is already grayscale</option>
+            </select>
+          </label>
+          <button class="btn" onclick="gradeQ1()">Check answer</button>
+          <div id="q1out" class="out"></div>
+        </div>
+
+        <div class="q">
+          <b>Check 2: Red-mask sensitivity (conceptual)</b>
+          <p class="muted" style="margin:6px 0 0;">
+            Increasing <code>rMin</code> makes the mask:
+          </p>
+          <label>
+            <select id="q2">
+              <option value="">Select…</option>
+              <option value="a">More strict (fewer pixels counted as red)</option>
+              <option value="b">Less strict (more pixels counted as red)</option>
+              <option value="c">Unchanged</option>
+            </select>
+          </label>
+          <button class="btn" onclick="gradeQ2()">Check answer</button>
+          <div id="q2out" class="out"></div>
+        </div>
+
+        <div class="q">
+          <b>Check 3: Histogram equalization effect</b>
+          <p class="muted" style="margin:6px 0 0;">
+            If the grayscale histogram is clustered in a narrow band, equalization tends to:
+          </p>
+          <label>
+            <select id="q3">
+              <option value="">Select…</option>
+              <option value="a">Increase global contrast by spreading intensities</option>
+              <option value="b">Always reduce noise</option>
+              <option value="c">Make the histogram more clustered</option>
+            </select>
+          </label>
+          <button class="btn" onclick="gradeQ3()">Check answer</button>
+          <div id="q3out" class="out"></div>
+        </div>
+      </div>
+
+      <footer>
+        Tip: In your README, point learners here with: <code>See notes.html for the deep-dive.</code>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, isWarn=false){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.toggle("warn", isWarn);
+    }
+    function gradeQ1(){
+      const v = document.getElementById("q1").value;
+      const out = document.getElementById("q1out");
+      if(v === "a") show(out, "Correct. HSV-V stretching preserves hue/saturation while expanding intensity range.");
+      else if(v) show(out, "Not quite. The main reason is preserving perceived color while adjusting contrast.", true);
+      else show(out, "Pick an option first.", true);
+    }
+    function gradeQ2(){
+      const v = document.getElementById("q2").value;
+      const out = document.getElementById("q2out");
+      if(v === "a") show(out, "Correct. Higher rMin means you require stronger red intensity, so fewer pixels pass.");
+      else if(v) show(out, "Not quite. Raising rMin makes the mask stricter, not looser.", true);
+      else show(out, "Pick an option first.", true);
+    }
+    function gradeQ3(){
+      const v = document.getElementById("q3").value;
+      const out = document.getElementById("q3out");
+      if(v === "a") show(out, "Correct. Equalization redistributes intensities to improve global contrast.");
+      else if(v) show(out, "Not quite. Equalization is about contrast redistribution, not guaranteed noise reduction.", true);
+      else show(out, "Pick an option first.", true);
+    }
+  </script>
+</body>
+</html>
