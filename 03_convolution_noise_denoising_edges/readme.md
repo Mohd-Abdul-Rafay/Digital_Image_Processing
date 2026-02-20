@@ -10,12 +10,12 @@ The objective is to analyze how different noise models and smoothing operators i
 ## Scope
 
 The pipeline includes:
-	•	Custom spatial convolution applied to the HSV Value channel
-	•	Salt & Pepper noise modeling with median restoration
-	•	Gaussian noise modeling with:
-	•	Gaussian smoothing (imgaussfilt)
-	•	Average filtering via custom convolution (conv2)
-	•	Canny edge extraction on denoised outputs
+- Custom spatial convolution applied to the HSV Value channel
+- Salt & Pepper noise modeling with median restoration
+- Gaussian noise modeling with:
+- Gaussian smoothing (imgaussfilt)
+- Average filtering via custom convolution (conv2)
+- Canny edge extraction on denoised outputs
 
 All visualizations are exported deterministically to the output/ directory.
 
