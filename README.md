@@ -101,8 +101,8 @@ This repository serves as a structured reference for those foundational principl
 
 ## Author
 
-Abdul Rafay Mohd
-Artificial Intelligence | Medical AI | Computer Vision
+**Abdul Rafay Mohd**  
+Artificial Intelligence | Medical AI | Computer Vision 
 
 ---
 
