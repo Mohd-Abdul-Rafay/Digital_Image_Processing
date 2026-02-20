@@ -37,7 +37,8 @@ Each transformation is exported programmatically to ensure reproducibility.
 │   ├── 09_grayscale_histogram.png
 │   ├── 10_histogram_matched.png
 │   └── 11_histogram_matching_comparison.png
-└── README.md
+├── README.md
+└── notes.html
 ```
 
 ---
