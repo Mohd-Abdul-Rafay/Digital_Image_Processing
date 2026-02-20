@@ -63,8 +63,16 @@ This serves as an interpretable baseline prior to optimized or feature-based reg
 │   ├── 03_target_masked.png
 │   ├── 04_best_params.txt
 │   └── 05_blend.png
+├── notes.html
 └── README.md
 ```
+
+---
+
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
 
 ---
 
