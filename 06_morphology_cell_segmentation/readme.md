@@ -70,8 +70,16 @@ Each stage is saved independently for diagnostic inspection.
 │   ├── 04_filled.png
 │   ├── 05_smoothed_mask.png
 │   └── 06_pipeline_summary.png
+├── notes.html   
 └── README.md
 ```
+
+---
+
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
 
 ---
 
