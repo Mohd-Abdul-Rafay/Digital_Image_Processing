@@ -43,10 +43,10 @@ This serves as an interpretable baseline prior to optimized or feature-based reg
    corr2(transformed_image, target_image)
    ```
 
-The parameter set yielding the maximum correlation is selected.
+	The parameter set yielding the maximum correlation is selected.
 
 5. **Result Export + Visualization**  
-The best parameters and blended alignment visualization are exported.
+	The best parameters and blended alignment visualization are exported.
 
 ---
 
