@@ -23,46 +23,47 @@ All outputs are exported deterministically to the output/ directory.
 
 1) Fourier Decomposition
 
-The grayscale image is transformed using:
-```bash
-F = fftshift(fft2(image))
-```
-Magnitude and phase components are visualized independently to isolate structural and phase information.
+  The grayscale image is transformed using:
+  ```bash
+  F = fftshift(fft2(image))
+  ```
+  Magnitude and phase components are visualized independently to isolate structural and phase information.
 
-Magnitude is log-scaled for numerical stability and visibility.
+  Magnitude is log-scaled for numerical stability and visibility.
 
 2) Frequency-Domain Gaussian Low-Pass Filtering
 
-A Gaussian filter centered at the DC component is constructed:
+  A Gaussian filter centered at the DC component is constructed:
 
-H(u,v) = e^{-\frac{u^2 + v^2}{2\sigma^2}}
+  H(u,v) = e^{-\frac{u^2 + v^2}{2\sigma^2}}
 
-This preserves low-frequency components (global structure) while attenuating high-frequency components (edges, noise).
+  This preserves low-frequency components (global structure) while attenuating high-frequency components (edges, noise).
 
-The filtered spectrum is reconstructed using:
-```bash
-ifft2(ifftshift(F .* H))
-```
+  The filtered spectrum is reconstructed using:
+  ```bash
+  ifft2(ifftshift(F .* H))
+  ```
 
 3) Spatial-Domain Gaussian Filtering
 
-A Gaussian filter is applied directly in the spatial domain using:
-```bash
-imgaussfilt(image, sigma)
-```
-This serves as the spatial-domain equivalent of the frequency-domain Gaussian LPF.
+  A Gaussian filter is applied directly in the spatial domain using:
+  ```bash
+  imgaussfilt(image, sigma)
+  ```
+  This serves as the spatial-domain equivalent of the frequency-domain Gaussian LPF.
 
 4) Structural Difference Analysis
 
-The absolute pixel-wise difference between:
-- Frequency-domain reconstruction
-- Spatial-domain smoothing
+  The absolute pixel-wise difference between:
+  - Frequency-domain reconstruction
+  - Spatial-domain smoothing
 
 is computed to evaluate equivalence and numerical deviations.
 
 ---
 
 ## Directory Structure
+```bash
 04_frequency_domain_filtering/
 ├── main.m
 ├── input/
@@ -76,6 +77,7 @@ is computed to evaluate equivalence and numerical deviations.
 │   ├── spatial_lpf.png
 │   └── abs_diff.png
 └── README.md
+```
 
 ---
 
