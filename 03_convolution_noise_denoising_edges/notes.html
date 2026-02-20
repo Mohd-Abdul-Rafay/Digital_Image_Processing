@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 03 Notes — Convolution, Noise, Denoising, Edges</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#95a3b8; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24;
+      --border:rgba(255,255,255,.08);
+      --code:#0a1020; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font-family:var(--sans); background:radial-gradient(1200px 800px at 20% 0%, #111f3f 0%, var(--bg) 45%, #070b14 100%); color:var(--text);}
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1100px; margin:0 auto; padding:28px 18px 64px}
+    header{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.45}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px 16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; color:var(--text); line-height:1.6}
+    .muted{color:var(--muted)}
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code);
+      overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; line-height:1.55}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:600; color:#dbe7ff}
+    .tbl{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px}
+    .tbl th,.tbl td{padding:10px 10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    .lab{
+      border:1px solid var(--border); border-radius:14px; padding:12px;
+      background:rgba(255,255,255,.03); margin-top:10px;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    select,input[type="range"]{width:100%; accent-color: var(--accent)}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(110,231,255,.16), rgba(110,231,255,.06));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0;
+      display:none;
+    }
+    .warn{background:rgba(251,191,36,.08); color:#fff3d1;}
+    .tag{display:inline-block; padding:2px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); font-size:12px}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>03 — Convolution, Noise Models, Denoising, and Edge Extraction</h1>
+      <p class="sub">
+        Notes for the MATLAB pipeline that applies <b>custom convolution</b>, injects <b>salt &amp; pepper</b> and
+        <b>Gaussian</b> noise, denoises with <b>median</b>, <b>Gaussian smoothing</b>, and <b>average filtering</b>,
+        then compares <b>Canny edges</b> on denoised outputs.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Input: <code>input/onion.png</code></span>
+        <span class="pill">Outputs: <code>output/01..06_*.png</code></span>
+        <span class="pill">Core ops: <code>conv2</code>, <code>imnoise</code>, <code>medfilt2</code>, <code>imgaussfilt</code>, <code>edge</code></span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) What this module is really testing</h2>
+        <p class="muted">
+          This module is a controlled comparison of <b>noise type</b> → <b>best denoiser</b> → <b>edge quality</b>.
+          The outputs let you visually verify the trade-off between smoothing and edge preservation.
+        </p>
+
+        <table class="tbl">
+          <thead>
+            <tr><th>Block</th><th>Purpose</th><th>Expected behavior</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Custom convolution on color</b><br><span class="tag">HSV Value channel</span></td>
+              <td>Apply a kernel to intensity while preserving hue/saturation.</td>
+              <td>Sharpen/emboss-like intensity change without shifting color balance.</td>
+            </tr>
+            <tr>
+              <td><b>Salt &amp; Pepper noise</b><br><span class="tag">impulsive</span></td>
+              <td>Simulate outlier pixels (0 or 255 “specks”).</td>
+              <td>Median filter should remove specks with minimal blur.</td>
+            </tr>
+            <tr>
+              <td><b>Gaussian noise</b><br><span class="tag">additive</span></td>
+              <td>Simulate sensor noise distributed across pixels.</td>
+              <td>Gaussian/average smoothing should reduce variance but blur edges.</td>
+            </tr>
+            <tr>
+              <td><b>Canny edges</b></td>
+              <td>Compare edge maps after denoising.</td>
+              <td>Cleaner denoise → fewer false edges; too much blur → missing edges.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <details>
+          <summary>Why “HSV Value only” for convolution?</summary>
+          <p class="muted">
+            Convolving RGB channels independently can introduce hue shifts (colors change because channel ratios change).
+            By converting to HSV and filtering only <b>V</b>, you treat the operation as an “intensity filter” while keeping
+            <b>H</b> and <b>S</b> stable.
+          </p>
+          <pre><code>hsv = rgb2hsv(rgb);
+v2  = conv2(double(v), K, "same");
+v2  = rescale(v2, 0, 1);
+out = hsv2rgb(cat(3,h,s,v2));</code></pre>
+        </details>
+
+        <details>
+          <summary>What the kernel is doing (intuitively)</summary>
+          <p class="muted">
+            Your 3×3 kernel has mixed signs, so it responds to local differences (a form of high-pass / directional emphasis).
+            The exact visual effect depends on content and the post-rescale. Expect edge-like emphasis or embossing in V.
+          </p>
+        </details>
+      </section>
+
+      <aside class="card">
+        <h2>2) Noise models and denoisers</h2>
+
+        <div class="lab">
+          <h3>Salt &amp; Pepper → Median filter</h3>
+          <p class="muted">
+            Median filtering is robust to outliers. It replaces a pixel with the median of its neighborhood, which removes
+            isolated impulses without averaging them into surrounding pixels.
+          </p>
+          <pre><code>spNoisy    = imnoise(gray, "salt & pepper");
+spDenoised = medfilt2(spNoisy);</code></pre>
+        </div>
+
+        <div class="lab">
+          <h3>Gaussian noise → Gaussian / Average smoothing</h3>
+          <p class="muted">
+            Gaussian smoothing is the classical choice for additive Gaussian noise (reduces high-frequency variance).
+            Average filtering is a simpler low-pass; it tends to blur more aggressively for the same kernel size.
+          </p>
+          <pre><code>gaussNoisy    = imnoise(gray, "gaussian", 0, 0.01);
+gaussDenoised = imgaussfilt(gaussNoisy, 2);
+
+avgK       = fspecial("average",[3 3]);
+avgDenoised = conv2(double(gaussNoisy), double(avgK), "same");</code></pre>
+        </div>
+
+        <details>
+          <summary>Why edges are computed after denoising</summary>
+          <p class="muted">
+            Edge detectors treat high-frequency components as potential edges. Noise is high-frequency too.
+            Denoising reduces false positives in edge maps.
+          </p>
+        </details>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) Implementation details (the parts that matter)</h2>
+
+      <h3>A) Precision and casting</h3>
+      <ul class="list">
+        <li><b>Convolution should run in double</b> to avoid overflow/rounding artifacts during accumulation.</li>
+        <li>After filtering, you convert back to a displayable range:
+          <ul class="list">
+            <li>HSV-V path uses <code>rescale(...,0,1)</code> to keep valid HSV values.</li>
+            <li>Grayscale path uses <code>clip → uint8</code> to keep valid intensities.</li>
+          </ul>
+        </li>
+      </ul>
+
+      <h3>B) Rescale vs clip (important distinction)</h3>
+      <ul class="list">
+        <li><b>clip</b> preserves absolute intensities (keeps meaning of values).</li>
+        <li><b>rescale</b> changes contrast globally (maps min→0 and max→1), which can exaggerate weak responses.</li>
+      </ul>
+
+      <details>
+        <summary>Why rescale is acceptable here</summary>
+        <p class="muted">
+          This block is a visualization-oriented demonstration of convolution response on V.
+          Rescaling makes the effect visible across different images/kernels. If you were doing quantitative work,
+          you would typically prefer controlled normalization or clipping + offset.
+        </p>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) Mini-checks (interactive)</h2>
+      <p class="muted">Use these to test your understanding (they don’t change your outputs).</p>
+
+      <div class="lab">
+        <h3>Check 1: Pick the best denoiser for the noise type</h3>
+        <div class="row">
+          <div style="flex:1; min-width:220px;">
+            <label class="muted">Noise type</label>
+            <select id="noiseType">
+              <option value="">Select…</option>
+              <option value="sp">Salt &amp; Pepper</option>
+              <option value="gauss">Gaussian</option>
+            </select>
+          </div>
+          <div style="flex:1; min-width:220px;">
+            <label class="muted">Best classical choice</label>
+            <select id="denoiser">
+              <option value="">Select…</option>
+              <option value="median">Median filter</option>
+              <option value="gaussf">Gaussian smoothing</option>
+              <option value="avg">Average filter</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn" style="margin-top:10px;" onclick="grade1()">Check</button>
+        <div id="out1" class="out"></div>
+      </div>
+
+      <div class="lab">
+        <h3>Check 2: Edge quality trade-off</h3>
+        <p class="muted" style="margin-top:6px;">
+          More smoothing usually means:
+        </p>
+        <select id="trade">
+          <option value="">Select…</option>
+          <option value="a">Fewer false edges, but potentially weaker/missing true edges</option>
+          <option value="b">More edges everywhere</option>
+          <option value="c">No change in edges</option>
+        </select>
+        <button class="btn" style="margin-top:10px;" onclick="grade2()">Check</button>
+        <div id="out2" class="out"></div>
+      </div>
+
+      <footer>
+        Tip for README: add a single line — <code>See notes.html for noise/denoising theory and trade-offs.</code>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, warn=false){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.toggle("warn", warn);
+    }
+    function grade1(){
+      const n = document.getElementById("noiseType").value;
+      const d = document.getElementById("denoiser").value;
+      const out = document.getElementById("out1");
+      if(!n || !d){ show(out, "Select both noise type and denoiser.", true); return; }
+      if(n === "sp" && d === "median"){
+        show(out, "Correct. Median filtering is robust to impulsive outliers.");
+      }else if(n === "gauss" && (d === "gaussf" || d === "avg")){
+        show(out, "Reasonable. Gaussian smoothing is the classic match; average filter is a simpler low-pass baseline.");
+      }else{
+        show(out, "Not ideal. Salt & Pepper → median. Gaussian → Gaussian smoothing (or average as a baseline).", true);
+      }
+    }
+    function grade2(){
+      const v = document.getElementById("trade").value;
+      const out = document.getElementById("out2");
+      if(!v){ show(out, "Pick an option.", true); return; }
+      if(v === "a") show(out, "Correct. Denoising reduces false edges, but oversmoothing can erase real boundaries.");
+      else show(out, "Not quite. Smoothing typically reduces edge responses, not increase them.", true);
+    }
+  </script>
+</body>
+</html>
