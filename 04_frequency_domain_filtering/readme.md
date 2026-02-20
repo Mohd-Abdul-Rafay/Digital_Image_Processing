@@ -82,12 +82,20 @@ abs_diff = abs(double(img_spatial) - double(img_freq));
 │   ├── freq_lpf.png
 │   ├── spatial_lpf.png
 │   └── abs_diff.png
+├── notes.html
 └── README.md
 ```
 
 ---
 
-Execution
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
+
+---
+
+## Execution
 
 From MATLAB:
 ```bash
