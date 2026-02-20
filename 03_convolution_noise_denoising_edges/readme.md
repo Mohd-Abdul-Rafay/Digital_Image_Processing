@@ -1,32 +1,23 @@
-# 03 — Convolution, Noise Models, Denoising, and Edge Extraction
+# 03 — Convolution, Noise Modeling, Denoising, and Edge Extraction
 
-This module implements a reproducible Digital Image Processing pipeline that compares:
-- **Custom convolution** (applied on the HSV **Value** channel for color images)
-- **Noise injection** (salt & pepper, Gaussian)
-- **Denoising** (median, Gaussian smoothing, average filter via custom convolution)
-- **Edge extraction** (Canny) after denoising
+This module evaluates spatial filtering behavior under controlled noise injection.
+It compares convolution-based intensity transformations, statistical denoising strategies, and edge stability after restoration.
 
-All figures are exported automatically to `output/` for clean versioning and review.
+The objective is to analyze how different noise models and smoothing operators influence structural preservation and downstream edge detection.
 
 ---
 
-## What This Produces
+## Scope
 
-### A) Convolution on Color (HSV Value Channel)
-A custom 3×3 kernel is applied to the **V channel** only, then reconstructed back to RGB.
+The pipeline includes:
+	•	Custom spatial convolution applied to the HSV Value channel
+	•	Salt & Pepper noise modeling with median restoration
+	•	Gaussian noise modeling with:
+	•	Gaussian smoothing (imgaussfilt)
+	•	Average filtering via custom convolution (conv2)
+	•	Canny edge extraction on denoised outputs
 
-### B) Salt & Pepper Noise + Median Denoising
-Noise is added to the grayscale image, then removed using `medfilt2`.
-
-### C) Gaussian Noise + Two Denoising Methods
-Gaussian noise is removed using:
-1) `imgaussfilt` (σ = 2)  
-2) Average filtering via a custom convolution (`conv2`)
-
-### D) Edge Extraction
-Canny edges are computed on:
-- Median-denoised salt & pepper result
-- Average-filter denoised Gaussian result
+All visualizations are exported deterministically to the output/ directory.
 
 ---
 
@@ -60,6 +51,7 @@ All generated visualizations are automatically saved to the output/ directory.
 ---
 
 ## Design Emphasis
-- Computation uses double precision internally to avoid numeric artifacts.
-- Output intensity ranges are clipped/rescaled to valid display ranges before export.
-- The HSV-V approach isolates intensity filtering while preserving hue/saturation.
+- Double-precision convolution for numerical stability
+- Controlled intensity clipping and normalization
+- Explicit comparison of linear vs nonlinear denoising
+- Edge sensitivity analysis under restoration
