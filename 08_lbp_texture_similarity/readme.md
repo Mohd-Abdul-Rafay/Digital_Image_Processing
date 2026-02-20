@@ -47,8 +47,16 @@ All outputs are written deterministically to `output/`:
 │   ├── 01_patches_montage.png
 │   ├── 02_results.txt
 │   └── 03_lbp_similarity_ranking.csv
+├── notes.html
 └── README.md
 ```
+
+---
+
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
 
 ---
 
