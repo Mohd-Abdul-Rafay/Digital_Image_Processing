@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 05 Notes — Haar Wavelets: Decomposition, Detail Energy, Suppression, Reconstruction</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#95a3b8; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24;
+      --border:rgba(255,255,255,.08);
+      --code:#0a1020; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background:radial-gradient(1200px 800px at 20% 0%, #111f3f 0%, var(--bg) 45%, #070b14 100%);
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1150px; margin:0 auto; padding:28px 18px 70px}
+    header{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.55}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px 16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; line-height:1.7}
+    .muted{color:var(--muted)}
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code); overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; line-height:1.6}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:600; color:#dbe7ff}
+    .tbl{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px}
+    .tbl th,.tbl td{padding:10px 10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    .eq{
+      display:block; padding:10px 12px; border-radius:14px;
+      border:1px dashed rgba(255,255,255,.16); background:rgba(167,139,250,.06);
+      font-family:var(--mono); overflow:auto;
+    }
+    .kpi{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px;
+    }
+    @media (max-width: 740px){ .kpi{grid-template-columns:1fr} }
+    .kpi .box{
+      border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.03);
+      padding:12px;
+    }
+    .kpi .box b{display:block; margin-bottom:4px}
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(110,231,255,.16), rgba(110,231,255,.06));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0; display:none;
+    }
+    .warn{background:rgba(251,191,36,.08); color:#fff3d1;}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>05 — Wavelet Decomposition, Detail-Energy Edge Map, and Detail Suppression (Haar)</h1>
+      <p class="sub">
+        Notes for the MATLAB pipeline that performs a <b>3-level 2D Haar DWT</b>, visualizes subbands (A/H/V/D),
+        builds a <b>detail-energy edge map</b> by accumulating detail-only IDWT reconstructions, then suppresses
+        detail coefficients (<code>*=0.5</code>) and reconstructs the image for comparison.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Input: <code>input/peppers.png</code> → grayscale</span>
+        <span class="pill">Outputs: mosaic, edge-energy map, thresholded edges, reconstructed image</span>
+        <span class="pill">Toolbox: Wavelet Toolbox (<code>dwt2</code>, <code>idwt2</code>, <code>wcodemat</code>)</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) Big idea (what wavelets give you that FFT doesn’t)</h2>
+        <p class="muted">
+          Fourier methods decompose an image into global sine/cosine frequencies. Wavelets decompose into
+          <b>localized</b> components: you get <b>where</b> and <b>what scale</b> the structure lives at. A multi-level DWT is a
+          multi-resolution representation: coarse structure lives in the approximation, edges/textures live in the detail subbands.
+        </p>
+
+        <div class="kpi">
+          <div class="box"><b>Approximation (cA)</b><div class="muted">Low-frequency / coarse structure.</div></div>
+          <div class="box"><b>Details (cH,cV,cD)</b><div class="muted">Directional high-frequency content (edges/texture).</div></div>
+          <div class="box"><b>Multi-level</b><div class="muted">Repeat on cA to get coarser scales (level 2, 3, ...).</div></div>
+        </div>
+
+        <h3>Haar wavelet (the simplest wavelet)</h3>
+        <p class="muted">
+          Haar uses piecewise-constant basis functions. It’s fast and interpretable: detail coefficients respond strongly to step edges.
+          It’s a good teaching wavelet for “what is a wavelet subband”.
+        </p>
+
+        <h3>Conceptual equations (minimal)</h3>
+        <div class="eq">
+          1D intuition: <br/>
+          a[k] = (x[2k] + x[2k+1]) / √2  &nbsp;&nbsp; (low-pass / average)<br/>
+          d[k] = (x[2k] - x[2k+1]) / √2  &nbsp;&nbsp; (high-pass / difference)<br/><br/>
+          2D DWT: apply 1D filters row-wise then column-wise → four subbands per level:<br/>
+          cA (LL), cH (LH), cV (HL), cD (HH)
+        </div>
+
+        <details>
+          <summary>What “LL/LH/HL/HH” actually means</summary>
+          <ul class="list">
+            <li><b>LL (cA)</b>: low-pass rows + low-pass cols → coarse image.</li>
+            <li><b>LH (cH)</b>: low-pass rows + high-pass cols → responds to <b>horizontal</b> structures (changes along y).</li>
+            <li><b>HL (cV)</b>: high-pass rows + low-pass cols → responds to <b>vertical</b> structures (changes along x).</li>
+            <li><b>HH (cD)</b>: high-pass rows + high-pass cols → diagonal / corner-like detail.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Why wavelets are used in denoising/compression</summary>
+          <ul class="list">
+            <li>Noise often spreads into high-frequency bands → shrink detail coefficients to reduce noise.</li>
+            <li>Many natural images are sparse in wavelet domain → many detail coefficients are small → compress well.</li>
+            <li>Wavelet thresholding is a classic baseline for image denoising (soft/hard threshold).</li>
+          </ul>
+        </details>
+      </section>
+
+      <aside class="card">
+        <h2>2) Mapping your code → theory</h2>
+        <table class="tbl">
+          <thead><tr><th>Step</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>rgb2gray</b></td>
+              <td>Operate on intensity channel for wavelet analysis (simplifies subband interpretation).</td>
+            </tr>
+            <tr>
+              <td><b>dwt2 (3 levels)</b></td>
+              <td>Compute {cA,cH,cV,cD} at each level; recurse on cA (approximation).</td>
+            </tr>
+            <tr>
+              <td><b>wcodemat</b></td>
+              <td>Normalize coefficients for visualization (not the same as “true” coefficient values).</td>
+            </tr>
+            <tr>
+              <td><b>Mosaic layout</b></td>
+              <td>Standard wavelet coefficient map: embed deeper level into the top-left (approximation) quadrant.</td>
+            </tr>
+            <tr>
+              <td><b>Detail-only IDWT accumulation</b></td>
+              <td>Reconstruct spatial “detail energy” from H/V/D only; sum across levels → multi-scale edge evidence.</td>
+            </tr>
+            <tr>
+              <td><b>Threshold = 7</b></td>
+              <td>Binary decision on accumulated detail energy; higher threshold = fewer edges.</td>
+            </tr>
+            <tr>
+              <td><b>H/V/D *= 0.5</b></td>
+              <td>Detail suppression → smoother reconstruction; approximation kept intact.</td>
+            </tr>
+            <tr>
+              <td><b>iWaveLetRec</b></td>
+              <td>Inverse reconstruction across levels; resizing aligns shapes between levels.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <details>
+          <summary>Important: visualization scaling vs algorithm scaling</summary>
+          <p class="muted">
+            <code>wcodemat</code> rescales coefficients to displayable range. It should be used only for images you view,
+            not for computation. Your computation uses the raw coefficient matrices (correct).
+          </p>
+        </details>
+
+        <details>
+          <summary>Why your “reconstructed image cropped” can happen</summary>
+          <ul class="list">
+            <li>Multi-level <code>idwt2</code> can change size by ±1 depending on filter extension and even/odd dimensions.</li>
+            <li>Your forward pass resizes detail bands to match <code>imgR</code> at each step; size alignment is valid but can introduce slight dimension drift vs original.</li>
+            <li>If any intermediate level yields a different size, final reconstruction may not match <code>imgGray</code> exactly (leading to montage looking “cropped”).</li>
+          </ul>
+          <p class="muted">
+            Your refactor handles comparison safely by padding to max(H,W) before concatenation; that’s the correct “audit-friendly” fix.
+          </p>
+        </details>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) Topics covered by this module (full syllabus around the code)</h2>
+
+      <h3>A) Multi-resolution analysis</h3>
+      <ul class="list">
+        <li><b>Scale separation:</b> structure at different sizes becomes explicit across levels.</li>
+        <li><b>Downsampling:</b> each level halves spatial resolution in the approximation.</li>
+        <li><b>Directional selectivity:</b> H/V/D capture oriented detail responses.</li>
+      </ul>
+
+      <h3>B) Subbands as frequency bands (but localized)</h3>
+      <ul class="list">
+        <li><b>cA</b> ≈ low spatial frequencies (smooth components).</li>
+        <li><b>cH/cV/cD</b> ≈ higher frequencies; edges live here.</li>
+        <li>Unlike FFT, subbands are <b>localized</b> in space, not global.</li>
+      </ul>
+
+      <h3>C) Coefficient manipulation as a model of “what matters”</h3>
+      <ul class="list">
+        <li><b>Detail suppression</b> simulates smoothing / denoising / compression.</li>
+        <li><b>Scaling</b> detail coefficients is a form of shrinkage; thresholding is stronger.</li>
+        <li>Keeping cA fixed while shrinking details tests how much “sharpness” is encoded by details.</li>
+      </ul>
+
+      <h3>D) Edge-energy maps from wavelet details</h3>
+      <ul class="list">
+        <li>Edges are strong in high-frequency bands → wavelet detail magnitude correlates with edge presence.</li>
+        <li>Accumulating detail-only reconstructions is a simple multi-scale edge detector.</li>
+        <li>Thresholding yields a binary mask; tuning threshold changes sensitivity.</li>
+      </ul>
+
+      <details>
+        <summary>Alternative (common) edge-energy definitions you may see in literature</summary>
+        <ul class="list">
+          <li><b>Local energy:</b> E = √(cH² + cV² + cD²) per level (then sum/avg across levels).</li>
+          <li><b>Magnitude-only maps:</b> use |cH| + |cV| + |cD|.</li>
+          <li><b>Soft thresholding:</b> wavelet denoising using <code>wthresh</code> or BayesShrink-style thresholds.</li>
+        </ul>
+      </details>
+
+      <h3>E) Boundary handling + artifacts</h3>
+      <ul class="list">
+        <li>DWT uses signal extension at boundaries (symmetric/periodic/etc. depending on implementation).</li>
+        <li>Boundary choices affect coefficients near edges and can influence reconstruction size.</li>
+        <li>Resizing coefficient bands introduces interpolation artifacts (acceptable here for visualization/consistency).</li>
+      </ul>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) How to interpret your exported outputs</h2>
+
+      <table class="tbl">
+        <thead><tr><th>Output</th><th>What to look for</th><th>Interpretation</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>02_dwt_coefficients_mosaic.png</b></td>
+            <td>Top-left contains embedded approximations; other quadrants show detail responses.</td>
+            <td>High energy in detail bands indicates strong edges/textures at that scale/orientation.</td>
+          </tr>
+          <tr>
+            <td><b>03_edge_map_detail_energy.png</b></td>
+            <td>Bright regions correspond to large accumulated detail-only reconstruction magnitude.</td>
+            <td>Multi-scale edge evidence (not a perfect edge detector, but interpretable).</td>
+          </tr>
+          <tr>
+            <td><b>04_edge_map_thresholded.png</b></td>
+            <td>Binary edges depend heavily on threshold=7.</td>
+            <td>Higher threshold → fewer edges; lower threshold → noisy/denser edges.</td>
+          </tr>
+          <tr>
+            <td><b>05_reconstructed_detail_suppressed.png</b></td>
+            <td>Image is smoother; edges are softer; textures reduced.</td>
+            <td>Proof that fine detail is encoded in wavelet detail subbands.</td>
+          </tr>
+          <tr>
+            <td><b>06_original_vs_reconstructed.png</b></td>
+            <td>Side-by-side comparison; small border shifts may appear.</td>
+            <td>Size drift is expected; your comparison tile makes this auditable instead of hiding it.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>What to tune first (if results look “off”)</summary>
+        <ul class="list">
+          <li><b>threshold</b> for edge map (7): adjust to image content.</li>
+          <li><b>detail scale</b> (0.5): smaller → more smoothing; closer to 1 → less change.</li>
+          <li><b>levels</b> (3): more levels capture coarser-scale details but increase size/edge effects.</li>
+          <li><b>Normalization</b>: do not normalize coefficients for computation; only for display.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>5) Quick checks (interactive)</h2>
+      <p class="muted">These are comprehension checks. They don’t change your results.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 1: What happens if you scale H/V/D down?</h3>
+          <select id="q1" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">Edges soften; textures reduce; image looks smoother</option>
+            <option value="b">Image becomes sharper because high frequencies increase</option>
+            <option value="c">Nothing changes because approximation dominates entirely</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q1','a','o1')">Check</button>
+          <div id="o1" class="out"></div>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 2: Which subband mainly carries coarse structure?</h3>
+          <select id="q2" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">cA (approximation / LL)</option>
+            <option value="b">cD (diagonal / HH)</option>
+            <option value="c">cH only</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q2','a','o2')">Check</button>
+          <div id="o2" class="out"></div>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03); margin-top:12px;">
+        <h3 style="margin-top:0;">Check 3: Why might reconstruction size differ from the original?</h3>
+        <select id="q3" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+          <option value="">Select…</option>
+          <option value="a">Boundary extension + even/odd dimension handling in DWT/IDWT</option>
+          <option value="b">Because wavelets cannot reconstruct images</option>
+          <option value="c">Because wcodemat changes the coefficient values used for reconstruction</option>
+        </select>
+        <button class="btn" style="margin-top:10px;" onclick="grade('q3','a','o3')">Check</button>
+        <div id="o3" class="out"></div>
+      </div>
+
+      <footer>
+        README tip: add one line — <code>See notes.html for Haar DWT theory, subband interpretation, and tuning guidance.</code>
+      </footer>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, warn=false){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.toggle("warn", warn);
+    }
+    function grade(qid, correct, outid){
+      const v = document.getElementById(qid).value;
+      const out = document.getElementById(outid);
+      if(!v){ show(out, "Pick an option.", true); return; }
+      if(v === correct) show(out, "Correct.");
+      else show(out, "Incorrect. Re-check the subband interpretation and what detail suppression does.", true);
+    }
+  </script>
+</body>
+</html>
