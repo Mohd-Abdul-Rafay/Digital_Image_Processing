@@ -1,18 +1,38 @@
-# 01 — Color Space + Histogram Processing (MATLAB)
+# 01 — Color Space Modeling & Intensity Distribution Transformation
 
-This module demonstrates core Digital Image Processing operations on a single RGB image:
+This module explores how image representation changes across color spaces and how pixel intensity distributions can be systematically manipulated.
 
-- RGB channel separation (R/G/B)
-- HSV conversion and channel visualization (H/S/V)
-- 2× upscaling followed by center-cropping back to original size
-- Grayscale conversion + histogram plotting
-- Histogram matching (grayscale image matched to reference distribution)
+The implementation examines:
 
-## How to Run
+- RGB channel isolation and structural intensity variation
+- RGB → HSV transformation and perceptual channel separation
+- Spatial interpolation effects via 2× scaling and controlled center cropping
+- Grayscale projection and empirical histogram estimation
+- Histogram matching as distribution alignment using cumulative intensity remapping
 
-1. Place your input image at:
-   - `input/image.png`
+Rather than treating these as isolated operations, this module frames them as representation primitives that underlie classical computer vision pipelines.
 
-2. Open MATLAB, set the Current Folder to this directory, and run:
-   ```matlab
-   main
+---
+
+## Execution
+```bash
+01_color_space_and_histogram/
+├── main.m
+├── input/
+│   └── image.png
+└── output/
+```
+
+---
+
+
+## Run:
+
+```matlab
+main
+```
+All generated visualizations are exported automatically to output/.
+
+---
+
+Focus: Foundational representation mechanics and intensity distribution modeling in classical vision systems.
