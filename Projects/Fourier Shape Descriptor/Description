@@ -1,8 +1,0 @@
-Develop a program to achieve the following functions:
-• A GUI to allow user interactions for loading images, specifying operations and arguments, and visualizing the outputs,
-• Loading one image and extracting the edge features of the object (make sure the edges
-  form a closed boundary. Morphology operators may be used);
-• Extracting the edge points and creating Fourier descriptor from the point set;
-• Allowing the user to specify the percentage of Fourier coefficients to be retained for reconstruction;
-• Reconstructing an object boundary from the retained Fourier coefficients and visualizing the reconstruction;
-• Allowing the user to save the Fourier descriptor.
