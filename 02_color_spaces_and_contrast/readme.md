@@ -72,7 +72,7 @@ All outputs are exported automatically to the output/ directory.
 ---
 
 ## Design Principles
-•	Deterministic outputs
-•	Clean separation of transformations
-•	Explicit domain modeling (RGB vs HSV vs YIQ)
-•	Reproducible export pipeline
+- Deterministic outputs  
+- Clean separation of transformations  
+- Explicit domain modeling (RGB vs HSV vs YIQ)  
+- Reproducible export pipeline  
