@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Module 08 Notes — Texture Similarity with LBP + Euclidean Distance</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#101a2e; --muted:#9aa8bf; --text:#e7eefc;
+      --accent:#6ee7ff; --accent2:#a78bfa; --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+      --border:rgba(255,255,255,.08); --code:#0a1020;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text);
+      background:radial-gradient(1100px 760px at 18% 0%, #111f3f 0%, var(--bg) 48%, #070b14 100%);
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    .wrap{max-width:1180px; margin:0 auto; padding:28px 18px 70px}
+    header{
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border-radius:18px; padding:22px 20px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+    }
+    h1{margin:0 0 8px; font-size:28px; letter-spacing:.2px}
+    .sub{margin:0; color:var(--muted); line-height:1.6}
+    .pillrow{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.04);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:13px;
+    }
+    .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; margin-top:16px}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--border); background:rgba(16,26,46,.72);
+      border-radius:16px; padding:16px; box-shadow:0 10px 28px rgba(0,0,0,.28);
+    }
+    h2{margin:0 0 10px; font-size:18px}
+    h3{margin:14px 0 8px; font-size:15px; color:#dbe7ff}
+    p{margin:8px 0; line-height:1.7}
+    .muted{color:var(--muted)}
+    code, pre{font-family:var(--mono)}
+    pre{
+      margin:10px 0; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:var(--code); overflow:auto;
+    }
+    .list{margin:8px 0 0; padding-left:18px; line-height:1.6}
+    .list li{margin:6px 0}
+    details{
+      border:1px solid var(--border); border-radius:14px; padding:10px 12px;
+      background:rgba(255,255,255,.03); margin:10px 0;
+    }
+    details summary{cursor:pointer; font-weight:700; color:#dbe7ff}
+    .tbl{
+      width:100%; border-collapse:separate; border-spacing:0;
+      overflow:hidden; border-radius:14px; border:1px solid var(--border); margin-top:10px;
+    }
+    .tbl th,.tbl td{padding:10px; border-bottom:1px solid var(--border); vertical-align:top}
+    .tbl th{color:#dbe7ff; text-align:left; background:rgba(255,255,255,.04)}
+    .tbl tr:last-child td{border-bottom:none}
+    .eq{
+      display:block; padding:10px 12px; border-radius:14px;
+      border:1px dashed rgba(255,255,255,.16); background:rgba(110,231,255,.06);
+      font-family:var(--mono); overflow:auto;
+    }
+    .callout{
+      border:1px solid var(--border); border-radius:14px; padding:12px;
+      background:rgba(167,139,250,.07); margin-top:10px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; gap:8px;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(110,231,255,.14), rgba(110,231,255,.05));
+      color:var(--text); padding:10px 12px; border-radius:12px;
+      cursor:pointer; user-select:none;
+    }
+    .btn:hover{filter:brightness(1.06)}
+    .out{
+      margin-top:10px; padding:12px; border-radius:14px;
+      border:1px solid var(--border); background:rgba(52,211,153,.08);
+      color:#d7fff0; display:none;
+    }
+    .warn{background:rgba(251,191,36,.08); color:#fff3d1;}
+    .bad{background:rgba(251,113,133,.09); color:#ffe4ea;}
+    footer{margin-top:18px; color:var(--muted); font-size:13px}
+    .kpi{display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin-top:10px}
+    @media (max-width: 740px){ .kpi{grid-template-columns:1fr} }
+    .kpi .box{
+      border:1px solid var(--border); border-radius:14px; background:rgba(255,255,255,.03);
+      padding:12px;
+    }
+    .kpi .box b{display:block; margin-bottom:4px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>08 — Texture Similarity with Local Binary Patterns (LBP) + Euclidean Distance</h1>
+      <p class="sub">
+        Notes for the MATLAB pipeline that ranks candidate texture patches by comparing <b>LBP feature vectors</b>
+        against a reference patch (bricks/original). Lower Euclidean distance ⇒ more similar texture.
+      </p>
+      <div class="pillrow">
+        <span class="pill">Descriptor: LBP (micro-texture)</span>
+        <span class="pill">Similarity: L2 distance on feature vectors</span>
+        <span class="pill">Patches: 128×128 crops (4 original + 4 rotated)</span>
+        <span class="pill">Tools: extractLBPFeatures (CV Toolbox)</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>1) Problem framing (what you’re actually measuring)</h2>
+        <p class="muted">
+          This module is a <b>classical texture retrieval baseline</b>: given a reference patch,
+          identify the most similar candidate patch using a hand-crafted descriptor.
+        </p>
+
+        <h3>Why texture matching matters</h3>
+        <ul class="list">
+          <li><b>Material recognition:</b> fabric vs wood vs brick-like surfaces.</li>
+          <li><b>Industrial inspection:</b> surface defects show up as local pattern shifts.</li>
+          <li><b>Medical imaging:</b> tissue textures (with different descriptors) are often discriminative.</li>
+          <li><b>Remote sensing:</b> land-use patterns can be texture-like at small scales.</li>
+        </ul>
+
+        <h3>What your code controls (for fair comparison)</h3>
+        <ul class="list">
+          <li>All images are converted to <b>grayscale</b> (descriptor sees intensity patterns only).</li>
+          <li>All candidates use the same <b>cropRect = [0,0,128,128]</b> (fixed spatial support).</li>
+          <li>You include both original and rotated variants to stress rotation sensitivity.</li>
+        </ul>
+
+        <div class="callout">
+          <b>Important:</b> this is not “classification.” It’s a ranked similarity search:
+          you’re measuring which patch is closest in descriptor space.
+        </div>
+      </section>
+
+      <aside class="card">
+        <h2>2) LBP in one page</h2>
+        <p class="muted">
+          LBP converts local neighborhoods into a binary code that represents micro-structures
+          (edges, corners, spots). Aggregated over the patch, you get a feature vector.
+        </p>
+
+        <h3>Core idea</h3>
+        <div class="eq">
+          For each pixel center c with neighbors p:<br/>
+          bit(p) = 1 if I(p) ≥ I(c) else 0<br/>
+          LBP code = Σ bit(p) · 2^p
+        </div>
+
+        <h3>What it tends to capture well</h3>
+        <ul class="list">
+          <li>Local contrast patterns (micro-texture).</li>
+          <li>Many common textures remain distinctive under small intensity shifts.</li>
+        </ul>
+
+        <details>
+          <summary>What LBP does NOT capture well</summary>
+          <ul class="list">
+            <li><b>Global geometry:</b> large shapes, layout, object structure.</li>
+            <li><b>Strong scale changes:</b> different zoom levels change neighborhood statistics.</li>
+            <li><b>Rotation invariance:</b> basic LBP is not inherently rotation-invariant unless configured/pooled accordingly.</li>
+          </ul>
+        </details>
+
+        <details>
+          <summary>Why 'Interpolation','Linear' appears in your code</summary>
+          <p class="muted">
+            MATLAB’s LBP extraction can sample neighbor positions that don’t land exactly on pixel centers.
+            Linear interpolation makes those samples smooth and consistent (at the cost of some sharpness).
+          </p>
+        </details>
+      </aside>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>3) Descriptor space + distance (how ranking works)</h2>
+
+      <p class="muted">
+        After extracting LBP feature vectors, you compute Euclidean distance between reference and candidate vectors.
+        This is a standard baseline in classical retrieval.
+      </p>
+
+      <div class="eq">
+        Given features f_ref and f_i:<br/>
+        score(i) = || f_ref - f_i ||₂<br/>
+        Lower score ⇒ closer in descriptor space ⇒ more similar texture
+      </div>
+
+      <div class="kpi">
+        <div class="box">
+          <b>Why L2 distance is reasonable</b>
+          <span class="muted">LBP features are numeric vectors; L2 is a simple metric to start with.</span>
+        </div>
+        <div class="box">
+          <b>What you should watch</b>
+          <span class="muted">Feature scaling/normalization. If MATLAB outputs normalized features, L2 behaves more predictably.</span>
+        </div>
+        <div class="box">
+          <b>Alternatives</b>
+          <span class="muted">Chi-square distance (common for histograms), cosine distance, Earth Mover’s Distance (heavier).</span>
+        </div>
+      </div>
+
+      <details>
+        <summary>Is LBP a histogram? Should I use chi-square instead?</summary>
+        <p class="muted">
+          Many LBP pipelines produce histogram-like outputs. If your feature vector behaves like a histogram,
+          chi-square often matches intuition better than L2. Your current choice (L2) is fine for a clean baseline
+          because it’s simple and widely understood.
+        </p>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>4) Rotation stress test (what your augmentation is actually proving)</h2>
+
+      <p class="muted">
+        You rotate each image by −45° (crop mode), then re-crop. This creates candidates with altered local neighborhoods due to:
+      </p>
+      <ul class="list">
+        <li><b>Interpolation:</b> bilinear rotation changes pixel intensities subtly.</li>
+        <li><b>Orientation change:</b> local binary patterns can shift if texture has directional structure.</li>
+        <li><b>Crop effects:</b> you may capture different subregions after rotation + crop.</li>
+      </ul>
+
+      <div class="callout">
+        <b>Interpretation rule:</b> If rotated versions rank worse, it doesn’t automatically mean “wrong.”
+        It often means the descriptor is not rotation invariant (expected for basic LBP).
+      </div>
+
+      <details>
+        <summary>How to make LBP more rotation robust (still classical)</summary>
+        <ul class="list">
+          <li>Use rotation-invariant LBP variants (ri-LBP / uniform patterns).</li>
+          <li>Pool features across multiple rotated views (multi-view descriptor).</li>
+          <li>Use gradient-orientation histograms (HOG) or Gabor filters for directional textures.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>5) Reading your outputs (what each artifact is for)</h2>
+
+      <table class="tbl">
+        <thead><tr><th>Output</th><th>Purpose</th><th>What to check</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>01_patches_montage.png</b></td>
+            <td>Audit the exact patches used (inputs to LBP).</td>
+            <td>All are same size; rotated crops look plausible; reference is correct.</td>
+          </tr>
+          <tr>
+            <td><b>02_results.txt</b></td>
+            <td>Human-readable best match + full ranking.</td>
+            <td>Best match makes sense visually; distances are not all identical.</td>
+          </tr>
+          <tr>
+            <td><b>03_lbp_similarity_ranking.csv</b></td>
+            <td>Shareable ranking table for README/analysis.</td>
+            <td>Sorted ascending; candidate labels align with montage ordering.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details>
+        <summary>Common failure modes (and how to catch them quickly)</summary>
+        <ul class="list">
+          <li><b>Crop mismatch:</b> if any crop is empty, ranking is invalid → montage shows missing/blank tiles.</li>
+          <li><b>Different patch sizes:</b> descriptor comparisons become inconsistent → enforce consistent cropRect.</li>
+          <li><b>Color artifacts:</b> forgetting grayscale conversion changes behavior → your code handles this.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>6) Practical extensions (same repo, no scope creep)</h2>
+
+      <h3>Minimal upgrades that stay “textbook DIP”</h3>
+      <ul class="list">
+        <li><b>Try multiple crop locations</b> (center crop vs top-left) to reduce sampling bias.</li>
+        <li><b>Compare metrics</b>: L2 vs cosine vs chi-square (report which correlates best with visual similarity).</li>
+        <li><b>Preprocessing</b>: histogram equalization before LBP to reduce illumination sensitivity.</li>
+        <li><b>Multi-scale LBP</b>: compute features at multiple radii (captures coarse + fine texture).</li>
+      </ul>
+
+      <details>
+        <summary>Why your current cropRect can bias results</summary>
+        <p class="muted">
+          Using a fixed top-left crop is consistent (good), but it may not represent the image’s texture distribution
+          if that region is atypical. For education, this is acceptable; for robustness, sample multiple patches.
+        </p>
+      </details>
+
+      <footer>
+        README tip: add one line — <code>See notes.html for LBP theory, rotation sensitivity, and distance-based ranking interpretation.</code>
+      </footer>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>7) Quick checks (interactive)</h2>
+      <p class="muted">Short comprehension checks. No data modification.</p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 1: What does a lower LBP distance mean?</h3>
+          <select id="q1" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">More similar texture</option>
+            <option value="b">Less similar texture</option>
+            <option value="c">Higher contrast image</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q1','a','o1')">Check</button>
+          <div id="o1" class="out"></div>
+        </div>
+
+        <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03);">
+          <h3 style="margin-top:0;">Check 2: Why do you convert to grayscale before LBP?</h3>
+          <select id="q2" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+            <option value="">Select…</option>
+            <option value="a">LBP is defined on intensity neighborhoods</option>
+            <option value="b">LBP requires HSV images</option>
+            <option value="c">To reduce image size</option>
+          </select>
+          <button class="btn" style="margin-top:10px;" onclick="grade('q2','a','o2')">Check</button>
+          <div id="o2" class="out"></div>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border); border-radius:14px; padding:12px; background:rgba(255,255,255,.03); margin-top:12px;">
+        <h3 style="margin-top:0;">Check 3: Why can rotation change the score even for the same texture?</h3>
+        <select id="q3" style="width:100%; padding:10px; border-radius:12px; border:1px solid var(--border); background:var(--code); color:var(--text);">
+          <option value="">Select…</option>
+          <option value="a">LBP is not inherently rotation-invariant and rotation introduces interpolation artifacts</option>
+          <option value="b">corr2 is used instead of LBP</option>
+          <option value="c">Euclidean distance ignores features</option>
+        </select>
+        <button class="btn" style="margin-top:10px;" onclick="grade('q3','a','o3')">Check</button>
+        <div id="o3" class="out"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function show(el, msg, cls){
+      el.textContent = msg;
+      el.style.display = "block";
+      el.classList.remove("warn","bad");
+      if(cls) el.classList.add(cls);
+    }
+    function grade(qid, correct, outid){
+      const v = document.getElementById(qid).value;
+      const out = document.getElementById(outid);
+      if(!v){ show(out, "Pick an option.", "warn"); return; }
+      if(v === correct) show(out, "Correct.", "");
+      else show(out, "Incorrect. Re-check LBP definition, grayscale rationale, and rotation sensitivity.", "bad");
+    }
+  </script>
+</body>
+</html>
