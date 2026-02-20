@@ -36,11 +36,18 @@ All visualizations are exported deterministically to the `output/` directory.
 │   ├── 04_gaussian_noisy_vs_gauss_denoised.png
 │   ├── 05_gauss_denoised_vs_avgconv_denoised.png
 │   └── 06_edges_comparison.png
+├── notes.html
 └── README.md
 ```
 
 ---
 
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
+
+---
 
 ## Run:
 
