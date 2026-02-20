@@ -1,6 +1,0 @@
-Sinusoid signal dot products and 1D Fourier transform: develop a program to achieve the following functions:
-• A GUI to allow user interactions for specifying operations and arguments, and visualizing the outputs,
-• Creating and displaying two sinusoid signals and drawing sample points of both signals at an even spacing;
-• Displaying the sample points on top of the signals and computing the products;
-• Displaying the value of integration of the products;
-• Loading a user-specified signal (e.g., recording a voice signal) and applying the 1D Fourier transform to this signal
