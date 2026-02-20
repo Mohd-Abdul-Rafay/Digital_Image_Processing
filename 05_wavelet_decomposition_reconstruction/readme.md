@@ -91,8 +91,16 @@ This models structured frequency-domain smoothing and illustrates how detail ene
 │   ├── 04_edge_map_thresholded.png
 │   ├── 05_reconstructed_detail_suppressed.png
 │   └── 06_original_vs_reconstructed.png
+├── note.html
 └── README.md
 ```
+
+---
+
+## Notes (recommended)
+For deeper explanations and interactive learning for this module, open:
+
+- `notes.html` (interactive, browser-based)
 
 ---
 
