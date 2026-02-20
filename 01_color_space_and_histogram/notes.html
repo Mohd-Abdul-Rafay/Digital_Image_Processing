@@ -1,1 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DIP Notes — Module 01: Color Spaces & Histograms</title>
+  <meta name="description" content="Interactive study notes for Digital Image Processing: RGB/HSV, resizing/cropping, grayscale, histograms, histogram equalization & matching." />
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --panel:#111827;
+      --card:#0f172a;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#60a5fa;
+      --accent2:#34d399;
+      --danger:#fb7185;
+      --border:rgba(255,255,255,.08);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:14px;
+      --mono: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+      --sans: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--text); background:
+        radial-gradient(1200px 600px at 20% -10%, rgba(96,165,250,.25), transparent 60%),
+        radial-gradient(900px 500px at 85% 0%, rgba(52,211,153,.18), transparent 55%),
+        radial-gradient(1000px 700px at 50% 120%, rgba(251,113,133,.12), transparent 55%),
+        var(--bg);
+      line-height:1.6;
+    }
+    a{color:var(--accent); text-decoration:none}
+    a:hover{text-decoration:underline}
+    code, pre{font-family:var(--mono)}
+    .app{
+      display:grid;
+      grid-template-columns: 320px minmax(0, 1fr);
+      gap:18px;
+      max-width:1200px;
+      margin:0 auto;
+      padding:18px;
+    }
+    @media (max-width: 980px){
+      .app{grid-template-columns: 1fr}
+      .sidebar{position:relative; top:auto}
+    }
+    .sidebar{
+      position:sticky; top:18px; align-self:start;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 40%), var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .side-header{
+      padding:16px 16px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; gap:10px; align-items:flex-start; justify-content:space-between;
+    }
+    .brand h1{margin:0; font-size:14px; letter-spacing:.4px; text-transform:uppercase; color:var(--muted)}
+    .brand .title{margin:6px 0 0; font-size:18px; font-weight:700; color:var(--text)}
+    .pill{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      color:var(--muted); font-size:12px;
+      background:rgba(255,255,255,.03);
+      user-select:none;
+    }
+    .controls{padding:12px 16px; display:grid; gap:10px; border-bottom:1px solid var(--border)}
+    .search{
+      display:flex; gap:8px; align-items:center;
+      padding:10px 10px; border:1px solid var(--border);
+      border-radius:12px; background:rgba(0,0,0,.2);
+    }
+    .search input{
+      flex:1; border:0; outline:none; background:transparent; color:var(--text);
+      font-size:14px;
+    }
+    .btnrow{display:flex; gap:10px; flex-wrap:wrap}
+    button{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+      font-size:13px;
+    }
+    button:hover{background:rgba(255,255,255,.08)}
+    .toc{
+      padding:10px 8px 14px;
+      max-height:calc(100vh - 230px);
+      overflow:auto;
+    }
+    .toc a{
+      display:block;
+      padding:8px 10px;
+      border-radius:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .toc a:hover{background:rgba(255,255,255,.05); color:var(--text); text-decoration:none}
+    .toc a.active{background:rgba(96,165,250,.14); color:var(--text); border:1px solid rgba(96,165,250,.18)}
+    .content{
+      background:linear-gradient(180deg, rgba(255,255,255,.06), transparent 40%), var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .hero{
+      padding:18px 18px 12px;
+      border-bottom:1px solid var(--border);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .hero h2{margin:0; font-size:22px}
+    .hero p{margin:6px 0 0; color:var(--muted); max-width:70ch}
+    .meta{display:flex; gap:8px; flex-wrap:wrap}
+    .main{
+      padding:18px;
+      display:grid;
+      gap:14px;
+    }
+    .card{
+      background:rgba(0,0,0,.18);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+    }
+    .card h3{margin:0 0 6px; font-size:16px}
+    .card p{margin:6px 0; color:var(--text)}
+    .muted{color:var(--muted)}
+    .kbd{
+      font-family:var(--mono);
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      padding:2px 6px;
+      border-radius:8px;
+      font-size:12px;
+      color:var(--text);
+    }
+    details{
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:rgba(0,0,0,.14);
+      overflow:hidden;
+    }
+    summary{
+      list-style:none;
+      cursor:pointer;
+      padding:12px 14px;
+      font-weight:700;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    summary::-webkit-details-marker{display:none}
+    summary .tag{
+      font-size:12px; font-weight:700; color:var(--muted);
+      border:1px solid var(--border);
+      border-radius:999px; padding:4px 8px;
+      background:rgba(255,255,255,.03);
+    }
+    .details-body{padding:0 14px 14px}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+    @media (max-width: 880px){.grid2{grid-template-columns:1fr}}
+    pre{
+      background:#0a1020;
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:12px;
+      padding:12px;
+      overflow:auto;
+      position:relative;
+    }
+    .copy{
+      position:absolute; top:10px; right:10px;
+      font-size:12px; padding:6px 8px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.05);
+      color:var(--muted);
+    }
+    .copy:hover{color:var(--text)}
+    .callout{
+      border-left:4px solid var(--accent2);
+      background:rgba(52,211,153,.08);
+      padding:12px 12px 12px 14px;
+      border-radius:12px;
+      border:1px solid rgba(52,211,153,.16);
+    }
+    .warn{
+      border-left:4px solid var(--danger);
+      background:rgba(251,113,133,.08);
+      border:1px solid rgba(251,113,133,.16);
+    }
+    .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+    .chip{
+      padding:6px 10px; border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      font-size:12px; color:var(--muted);
+    }
+    .qa{
+      display:grid; gap:10px;
+    }
+    .q{
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:rgba(0,0,0,.14);
+    }
+    .q h4{margin:0 0 6px; font-size:14px}
+    .q .choices{display:grid; gap:6px; margin-top:8px}
+    .q label{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:8px 10px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.02);
+      cursor:pointer;
+    }
+    .q input{margin-top:3px}
+    .score{
+      display:flex; align-items:center; justify-content:space-between;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+    }
+    .score strong{color:var(--text)}
+    .flashgrid{
+      display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:12px;
+    }
+    @media (max-width: 740px){.flashgrid{grid-template-columns:1fr}}
+    .flash{
+      perspective:1200px;
+    }
+    .flash button{
+      width:100%;
+      text-align:left;
+      background:transparent;
+      border:0;
+      padding:0;
+    }
+    .flip{
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:rgba(0,0,0,.14);
+      min-height:120px;
+      padding:14px;
+      transform-style:preserve-3d;
+      transition: transform .55s ease;
+      position:relative;
+    }
+    .flip.is-flipped{transform:rotateY(180deg)}
+    .face{
+      position:absolute; inset:0; padding:14px;
+      backface-visibility:hidden;
+      display:flex; flex-direction:column; justify-content:center;
+    }
+    .face.back{transform:rotateY(180deg)}
+    .face .k{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px}
+    .face .v{font-size:15px; font-weight:700}
+    .footer{
+      padding:14px 18px;
+      border-top:1px solid var(--border);
+      color:var(--muted);
+      font-size:12px;
+      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .kbdhint{color:var(--muted)}
+    .kbdhint b{color:var(--text)}
+    .hide{display:none !important}
+  </style>
 
+  <!-- MathJax for LaTeX equations -->
+  <script>
+    window.MathJax = { tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] } };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" aria-label="Notes navigation">
+      <div class="side-header">
+        <div class="brand">
+          <h1>DIP Notes</h1>
+          <div class="title">Module 01</div>
+        </div>
+        <div class="pill" title="Interactive notes">
+          <span>⚡</span><span>interactive</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="search" role="search">
+          <span class="muted" aria-hidden="true">⌕</span>
+          <input id="search" type="search" placeholder="Search topics (e.g., histogram, HSV, CDF)..." />
+        </div>
+        <div class="btnrow">
+          <button id="expandAll" type="button">Expand all</button>
+          <button id="collapseAll" type="button">Collapse all</button>
+          <button id="print" type="button">Print / PDF</button>
+        </div>
+        <div class="score" aria-live="polite">
+          <span>Quiz score:</span>
+          <strong><span id="score">0</span>/<span id="scoreMax">0</span></strong>
+        </div>
+      </div>
+
+      <nav class="toc" id="toc"></nav>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="content">
+      <header class="hero">
+        <div>
+          <h2>Color Spaces & Histogram Processing</h2>
+          <p>
+            Study notes aligned to your MATLAB implementation:
+            RGB/HSV decomposition, 2× resize + center crop, grayscale conversion,
+            histogram estimation, and histogram matching via <span class="kbd">imhist</span> + <span class="kbd">histeq</span>.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="pill">Audience: beginners → CV-ready</span>
+          <span class="pill">Focus: reproducible foundations</span>
+          <span class="pill">Math: minimal but correct</span>
+        </div>
+      </header>
+
+      <section class="main" id="main">
+        <!-- QUICKSTART -->
+        <section class="card" id="quickstart" data-title="Quickstart">
+          <h3>Quickstart</h3>
+          <p class="muted">
+            Use this file as <span class="kbd">notes.html</span>. Open it locally in a browser.
+            Keyboard: <span class="kbd">/</span> focuses search, <span class="kbd">Esc</span> clears.
+          </p>
+          <div class="callout">
+            <b>How this maps to your code:</b>
+            each section matches one block in <span class="kbd">01_color_space_and_histogram/main.m</span>.
+          </div>
+          <div class="chips">
+            <span class="chip">RGB channels</span>
+            <span class="chip">HSV channels</span>
+            <span class="chip">Interpolation</span>
+            <span class="chip">Grayscale luminance</span>
+            <span class="chip">Histogram / PDF</span>
+            <span class="chip">CDF</span>
+            <span class="chip">Histogram matching</span>
+          </div>
+        </section>
+
+        <!-- SECTION: IMAGE BASICS -->
+        <details class="topic" id="image-basics" open data-title="Digital Image Basics">
+          <summary>
+            <span>1) Digital image basics (matrix + quantization)</span>
+            <span class="tag">concept</span>
+          </summary>
+          <div class="details-body">
+            <div class="grid2">
+              <div>
+                <p>
+                  A grayscale image is a discrete 2D function:
+                  \[
+                    f(x,y)
+                  \]
+                  For an RGB image:
+                  \[
+                    I(x,y) = [R(x,y), G(x,y), B(x,y)]
+                  \]
+                </p>
+                <p class="muted">
+                  In MATLAB, typical image type is <span class="kbd">uint8</span> with intensity range \([0,255]\).
+                  Histogram operations assume discrete bins — consistent typing matters.
+                </p>
+              </div>
+              <div class="callout warn">
+                <b>Common pitfall:</b> mixing <span class="kbd">double</span> \([0,1]\) and <span class="kbd">uint8</span> \([0,255]\)
+                silently changes histogram behavior and can break reproducibility.
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- SECTION: RGB -->
+        <details class="topic" id="rgb" open data-title="RGB Decomposition">
+          <summary>
+            <span>2) RGB decomposition (R/G/B channel structure)</span>
+            <span class="tag">code-aligned</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              RGB is an additive, device-dependent color model. Splitting into channels reveals how intensity structure differs per channel.
+              Many “simple” CV operations (edges, thresholding) behave differently on R vs G vs B.
+            </p>
+            <pre><button class="copy" data-copy>Copy</button><code>% RGB channels
+[RC, GC, BC] = imsplit(img);</code></pre>
+
+            <div class="callout">
+              <b>Why it matters:</b> Green often carries strong luminance cues; blue can amplify noise; red can dominate skin/warmer regions.
+              Channel separation is a prerequisite for robust preprocessing.
+            </div>
+          </div>
+        </details>
+
+        <!-- SECTION: HSV -->
+        <details class="topic" id="hsv" open data-title="HSV Transformation">
+          <summary>
+            <span>3) HSV transform (separating color vs intensity)</span>
+            <span class="tag">concept</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              HSV decouples “what color” from “how bright”.
+              \[
+                V = \max(R,G,B),\quad S = \frac{V-\min(R,G,B)}{V}
+              \]
+              Hue encodes chromatic identity (nonlinear).
+            </p>
+            <pre><button class="copy" data-copy>Copy</button><code>% HSV channels
+hsvImg = rgb2hsv(img);
+[H, S, V] = imsplit(hsvImg);</code></pre>
+
+            <div class="callout">
+              <b>Practical rule:</b> apply illumination/contrast edits on <span class="kbd">V</span> (or L* in Lab),
+              not on RGB directly, to preserve color consistency.
+            </div>
+          </div>
+        </details>
+
+        <!-- SECTION: RESIZE + CROP -->
+        <details class="topic" id="resize-crop" open data-title="Resizing & Center Crop">
+          <summary>
+            <span>4) Resize (2×) + center crop (sampling & interpolation)</span>
+            <span class="tag">code-aligned</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              Resizing changes the sampling grid. Interpolation approximates new pixel values:
+              \[
+                f'(x',y') = \sum w_{ij} f(x_i,y_j)
+              \]
+              Typical consequences: blur, aliasing, edge attenuation.
+            </p>
+
+            <div class="grid2">
+              <div>
+                <pre><button class="copy" data-copy>Copy</button><code>% Resize
+enlarged = imresize(img, 2);
+
+% Center crop back to original size
+origH = size(img,1); origW = size(img,2);
+startX = floor((size(enlarged,2)-origW)/2) + 1;
+startY = floor((size(enlarged,1)-origH)/2) + 1;
+cropRect = [startX startY origW-1 origH-1];
+cropped = imcrop(enlarged, cropRect);</code></pre>
+              </div>
+              <div class="callout warn">
+                <b>Boundary details:</b> crop rectangle uses MATLAB’s convention:
+                <span class="kbd">[x y width height]</span>.
+                Off-by-one errors are common when targeting exact dimensions.
+              </div>
+            </div>
+
+            <p class="muted">
+              This block is a clean way to demonstrate interpolation + spatial sampling effects while preserving final dimensions.
+            </p>
+          </div>
+        </details>
+
+        <!-- SECTION: GRAYSCALE -->
+        <details class="topic" id="grayscale" open data-title="Grayscale Projection">
+          <summary>
+            <span>5) RGB → grayscale (luminance model)</span>
+            <span class="tag">concept</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              MATLAB’s <span class="kbd">rgb2gray</span> approximates luminance:
+              \[
+                Y \approx 0.2989R + 0.5870G + 0.1140B
+              \]
+              This matches human sensitivity (green contributes most).
+            </p>
+            <pre><button class="copy" data-copy>Copy</button><code>gray = rgb2gray(img);</code></pre>
+
+            <div class="callout">
+              <b>Why grayscale still matters:</b> many classical operators (histograms, gradients, morphology) assume intensity-only inputs.
+            </div>
+          </div>
+        </details>
+
+        <!-- SECTION: HISTOGRAM -->
+        <details class="topic" id="histogram" open data-title="Histograms (PDF/CDF)">
+          <summary>
+            <span>6) Histogram: PDF + CDF (intensity statistics)</span>
+            <span class="tag">core</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              Histogram counts intensities:
+              \[
+                h(k) = \#\{(x,y): f(x,y)=k\},\quad k\in[0,255]
+              \]
+              Normalized histogram estimates a probability mass function:
+              \[
+                p(k) = \frac{h(k)}{MN}
+              \]
+              CDF:
+              \[
+                CDF(k) = \sum_{j=0}^{k} p(j)
+              \]
+            </p>
+
+            <pre><button class="copy" data-copy>Copy</button><code>imhist(gray);</code></pre>
+
+            <div class="callout warn">
+              <b>Interpretation:</b> a “narrow” histogram usually means low contrast; a “wide” histogram means high dynamic range usage.
+              But it does not guarantee good visual quality (noise can also widen histograms).
+            </div>
+          </div>
+        </details>
+
+        <!-- SECTION: HIST MATCHING -->
+        <details class="topic" id="hist-matching" open data-title="Histogram Matching">
+          <summary>
+            <span>7) Histogram matching (distribution alignment)</span>
+            <span class="tag">code-aligned</span>
+          </summary>
+          <div class="details-body">
+            <p>
+              Histogram matching (also called histogram specification) maps an input image so its CDF aligns to a reference CDF.
+              Conceptually:
+              \[
+                s = CDF_{in}(r),\quad z = CDF_{ref}^{-1}(s)
+              \]
+              This is used for illumination normalization, medical imaging harmonization, and cross-domain alignment.
+            </p>
+
+            <pre><button class="copy" data-copy>Copy</button><code>targetHist = imhist(referenceGray);
+matched = histeq(inputGray, targetHist);</code></pre>
+
+            <div class="callout">
+              <b>Why you forced uint8:</b> histogram bins must be stable and comparable; <span class="kbd">im2uint8</span> ensures 256 discrete levels.
+            </div>
+
+            <div class="grid2">
+              <div class="callout">
+                <b>Strength:</b> fast, deterministic, interpretable.
+              </div>
+              <div class="callout warn">
+                <b>Limit:</b> global matching can distort local contrast (CLAHE is the local alternative).
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <!-- QUIZ -->
+        <section class="card" id="quiz" data-title="Mini Quiz">
+          <h3>Mini quiz (fast check)</h3>
+          <p class="muted">Answer to validate understanding. Score updates in the sidebar.</p>
+
+          <div class="qa" id="qa">
+            <div class="q" data-answer="b">
+              <h4>Q1) Why apply contrast edits in HSV on the V channel?</h4>
+              <div class="choices">
+                <label><input type="radio" name="q1" value="a">Because V contains hue information</label>
+                <label><input type="radio" name="q1" value="b">Because V isolates brightness, preserving color consistency</label>
+                <label><input type="radio" name="q1" value="c">Because V makes histograms unnecessary</label>
+              </div>
+            </div>
+
+            <div class="q" data-answer="c">
+              <h4>Q2) What does the CDF represent in histogram methods?</h4>
+              <div class="choices">
+                <label><input type="radio" name="q2" value="a">Edge orientation distribution</label>
+                <label><input type="radio" name="q2" value="b">Spatial interpolation weights</label>
+                <label><input type="radio" name="q2" value="c">Cumulative probability up to intensity k</label>
+              </div>
+            </div>
+
+            <div class="q" data-answer="a">
+              <h4>Q3) What’s a typical risk of global histogram matching?</h4>
+              <div class="choices">
+                <label><input type="radio" name="q3" value="a">It can distort local contrast / amplify noise</label>
+                <label><input type="radio" name="q3" value="b">It always removes edges</label>
+                <label><input type="radio" name="q3" value="c">It changes the image size</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="btnrow" style="margin-top:12px">
+            <button id="grade" type="button">Grade quiz</button>
+            <button id="resetQuiz" type="button">Reset</button>
+          </div>
+        </section>
+
+        <!-- FLASHCARDS -->
+        <section class="card" id="flashcards" data-title="Flashcards">
+          <h3>Flashcards</h3>
+          <p class="muted">Click a card to flip. Use these before you code.</p>
+
+          <div class="flashgrid">
+            <div class="flash">
+              <button type="button" class="flashBtn">
+                <div class="flip">
+                  <div class="face front">
+                    <div class="k">Define</div>
+                    <div class="v">Histogram (h(k))</div>
+                  </div>
+                  <div class="face back">
+                    <div class="k">Answer</div>
+                    <div class="v">Count of pixels at intensity k (0..255).</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div class="flash">
+              <button type="button" class="flashBtn">
+                <div class="flip">
+                  <div class="face front">
+                    <div class="k">Concept</div>
+                    <div class="v">CDF in equalization</div>
+                  </div>
+                  <div class="face back">
+                    <div class="k">Answer</div>
+                    <div class="v">Maps intensities via cumulative probability to spread contrast.</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div class="flash">
+              <button type="button" class="flashBtn">
+                <div class="flip">
+                  <div class="face front">
+                    <div class="k">Rule</div>
+                    <div class="v">Why im2uint8?</div>
+                  </div>
+                  <div class="face back">
+                    <div class="k">Answer</div>
+                    <div class="v">Stabilizes discrete bins (256 levels) for consistent histogram behavior.</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            <div class="flash">
+              <button type="button" class="flashBtn">
+                <div class="flip">
+                  <div class="face front">
+                    <div class="k">CV Practice</div>
+                    <div class="v">HSV V-channel edits</div>
+                  </div>
+                  <div class="face back">
+                    <div class="k">Answer</div>
+                    <div class="v">Adjust brightness without shifting hue/saturation.</div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- REFERENCES -->
+        <section class="card" id="references" data-title="Further Reading">
+          <h3>Further reading (tight list)</h3>
+          <ul class="muted" style="margin:8px 0 0; padding-left:18px">
+            <li>Gonzalez & Woods — <i>Digital Image Processing</i>: Ch. 2 (intensity transforms), Ch. 6 (color)</li>
+            <li>MATLAB docs: <span class="kbd">rgb2hsv</span>, <span class="kbd">imhist</span>, <span class="kbd">histeq</span>, <span class="kbd">imresize</span></li>
+            <li>CLAHE: local contrast enhancement (recommended after you master global methods)</li>
+          </ul>
+        </section>
+      </section>
+
+      <footer class="footer">
+        <div>Built for: <b>Digital_Image_Processing</b> repo • Module 01 notes</div>
+        <div class="kbdhint">Tips: press <b>/</b> to search • <b>Esc</b> clears • click TOC to jump</div>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    // ---------- Helpers ----------
+    const $ = (sel, el=document) => el.querySelector(sel);
+    const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+
+    // ---------- Build TOC ----------
+    const toc = $("#toc");
+    const items = [
+      {id:"quickstart", label:"Quickstart"},
+      ...$$(".topic").map(d => ({id:d.id, label: d.getAttribute("data-title") || d.id})),
+      {id:"quiz", label:"Mini Quiz"},
+      {id:"flashcards", label:"Flashcards"},
+      {id:"references", label:"Further Reading"},
+    ];
+
+    toc.innerHTML = items.map(x => `<a href="#${x.id}" data-link="${x.id}">${x.label}</a>`).join("");
+
+    // ---------- Active section highlighting ----------
+    const tocLinks = $$("a", toc);
+    const obs = new IntersectionObserver((entries)=>{
+      entries.forEach(e=>{
+        if(!e.isIntersecting) return;
+        const id = e.target.id;
+        tocLinks.forEach(a=>a.classList.toggle("active", a.dataset.link === id));
+      });
+    }, {root:null, threshold:0.22});
+
+    items.forEach(x=>{
+      const el = document.getElementById(x.id);
+      if(el) obs.observe(el);
+    });
+
+    // ---------- Expand / Collapse ----------
+    $("#expandAll").addEventListener("click", ()=> $$(".topic").forEach(d=>d.open=true));
+    $("#collapseAll").addEventListener("click", ()=> $$(".topic").forEach(d=>d.open=false));
+    $("#print").addEventListener("click", ()=> window.print());
+
+    // ---------- Copy buttons ----------
+    $$("[data-copy]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const code = btn.parentElement.querySelector("code")?.innerText || "";
+        try{
+          await navigator.clipboard.writeText(code);
+          const prev = btn.textContent;
+          btn.textContent = "Copied";
+          setTimeout(()=>btn.textContent=prev, 900);
+        }catch{
+          btn.textContent = "Copy failed";
+          setTimeout(()=>btn.textContent="Copy", 1200);
+        }
+      });
+    });
+
+    // ---------- Search (filters topics + TOC) ----------
+    const search = $("#search");
+    const topicEls = $$(".topic, #quickstart, #quiz, #flashcards, #references");
+    function applySearch(q){
+      const query = q.trim().toLowerCase();
+      topicEls.forEach(el=>{
+        const title = (el.getAttribute("data-title") || el.id || "").toLowerCase();
+        const text = el.innerText.toLowerCase();
+        const match = !query || title.includes(query) || text.includes(query);
+        el.classList.toggle("hide", !match);
+      });
+      tocLinks.forEach(a=>{
+        const id = a.dataset.link;
+        const el = document.getElementById(id);
+        const visible = el && !el.classList.contains("hide");
+        a.classList.toggle("hide", !visible);
+      });
+    }
+    search.addEventListener("input", e => applySearch(e.target.value));
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e)=>{
+      if(e.key === "/" && document.activeElement !== search){
+        e.preventDefault();
+        search.focus();
+      }
+      if(e.key === "Escape"){
+        if(document.activeElement === search){
+          search.value = "";
+          applySearch("");
+          search.blur();
+        }
+      }
+    });
+
+    // ---------- Quiz grading ----------
+    const scoreEl = $("#score");
+    const scoreMaxEl = $("#scoreMax");
+    const qEls = $$(".q");
+    scoreMaxEl.textContent = String(qEls.length);
+
+    function grade(){
+      let score = 0;
+      qEls.forEach(q=>{
+        const ans = q.dataset.answer;
+        const picked = q.querySelector("input:checked")?.value;
+        q.style.borderColor = "rgba(255,255,255,.08)";
+        if(!picked) return;
+        if(picked === ans){
+          score += 1;
+          q.style.borderColor = "rgba(52,211,153,.5)";
+        }else{
+          q.style.borderColor = "rgba(251,113,133,.5)";
+        }
+      });
+      scoreEl.textContent = String(score);
+    }
+    $("#grade").addEventListener("click", grade);
+
+    $("#resetQuiz").addEventListener("click", ()=>{
+      qEls.forEach(q=>{
+        $$("input", q).forEach(i=>i.checked=false);
+        q.style.borderColor = "rgba(255,255,255,.08)";
+      });
+      scoreEl.textContent = "0";
+    });
+
+    // ---------- Flashcards ----------
+    $$(".flashBtn").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const flip = btn.querySelector(".flip");
+        flip.classList.toggle("is-flipped");
+      });
+    });
+
+    // Initial search state
+    applySearch("");
+  </script>
+</body>
+</html>
