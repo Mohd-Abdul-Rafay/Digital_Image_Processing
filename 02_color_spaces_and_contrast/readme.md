@@ -43,19 +43,19 @@ All outputs are programmatically generated and saved to ensure deterministic rep
 
 ## Methodology
 
-### Histogram Equalization
+### Histogram Equalization:
 
 Grayscale projection is equalized using histeq, approximating a uniform intensity distribution to enhance global contrast.
 
-### HSV-Based Contrast Stretching
+### HSV-Based Contrast Stretching:
 
 Intensity expansion is performed exclusively on the HSV Value channel using imadjust, preserving chromatic components (Hue, Saturation) while increasing dynamic range.
 
-### Channel Decomposition
+### Channel Decomposition:
 
 Independent visualization of RGB, HSV, and YIQ channels isolates representation differences between device-dependent and perceptual color spaces.
 
-### Color Masking
+### Color Masking:
 
 A deterministic threshold-based red dominance mask suppresses non-red pixels, demonstrating simple channel-based segmentation.
 
