@@ -9,11 +9,11 @@ The implementation treats common image operations not as isolated procedures, bu
 ## Scope
 
 This experiment includes:
-	•	RGB channel isolation and structural intensity analysis
-	•	RGB → HSV transformation for perceptual decomposition
-	•	2× spatial scaling with controlled center cropping (interpolation behavior)
-	•	Grayscale luminance projection and empirical histogram estimation
-	•	Histogram matching via cumulative distribution remapping
+- RGB channel isolation and structural intensity analysis
+- RGB → HSV transformation for perceptual decomposition
+- 2× spatial scaling with controlled center cropping (interpolation behavior)
+- Grayscale luminance projection and empirical histogram estimation
+- Histogram matching via cumulative distribution remapping
 
 Each transformation is exported programmatically to ensure reproducibility.
 
